@@ -1,0 +1,31 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+.report/
+
+# Node.js
+node_modules/
+dist/
+dist-ssr/
+*.local
+.env
+.env.*
+.npmrc
+.yarn/
+# Vite
+.vite/
+# TypeScript
+*.tsbuildinfo
+# IDEs
+.vscode/
+.idea/
+# macOS
+.DS_Store
+# Thumbs
+Thumbs.db
