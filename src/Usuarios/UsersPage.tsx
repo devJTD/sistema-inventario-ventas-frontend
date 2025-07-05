@@ -1,7 +1,7 @@
 // src/pages/UsersPage.tsx
 import React, { useEffect, useState } from 'react';
 import { Container, Table, Button, Spinner, Alert, Modal } from 'react-bootstrap';
-import UserForm from '../components/UserForm'; // Importa el UserForm
+import UserForm from './UserForm'; // Importa el UserForm
 
 // Define la interfaz para la estructura de tus usuarios (sin contraseña para la tabla)
 interface User {
