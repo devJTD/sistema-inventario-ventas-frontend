@@ -1,7 +1,7 @@
 // src/pages/SalesPage.tsx
 import React, { useEffect, useState } from 'react';
 import { Container, Table, Button, Spinner, Alert, ListGroup, Collapse } from 'react-bootstrap';
-import SaleFormModal from '../components/SaleFormModal'; // Importa el SaleFormModal
+import SaleFormModal from './SaleFormModal'; // Importa el SaleFormModal
 
 // Interfaces necesarias
 interface SaleItem {

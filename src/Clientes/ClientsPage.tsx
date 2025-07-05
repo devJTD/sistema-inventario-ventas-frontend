@@ -1,20 +1,19 @@
-// src/pages/ProvidersPage.tsx
+// src/pages/ClientsPage.tsx
 import React, { useEffect, useState } from 'react';
 import { Container, Table, Button, Spinner, Alert, Modal } from 'react-bootstrap';
-import ProviderForm from '../components/ProviderForm'; // Importa el ProviderForm
+import ClientForm from './ClientForm'; // Importa el ClientForm
 
-// Define la interfaz para la estructura de tus proveedores
-interface Provider {
+// Define la interfaz para la estructura de tus clientes
+interface Client {
   id: string;
   name: string;
-  contactPerson: string;
   email: string;
   phone: string;
   address: string;
 }
 
-const ProvidersPage: React.FC = () => {
-  const [providers, setProviders] = useState<Provider[]>([]);
+const ClientsPage: React.FC = () => {
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -22,46 +21,46 @@ const ProvidersPage: React.FC = () => {
 
   // Estados para el modal de Crear/Editar
   const [showFormModal, setShowFormModal] = useState<boolean>(false);
-  const [editingProvider, setEditingProvider] = useState<Provider | null>(null); // Proveedor a editar, o null para crear
+  const [editingClient, setEditingClient] = useState<Client | null>(null); // Cliente a editar, o null para crear
 
   // Estados para el modal de Confirmación de Eliminación
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
-  const [providerToDelete, setProviderToDelete] = useState<Provider | null>(null); // Proveedor que se va a eliminar
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null); // Cliente que se va a eliminar
 
-  // Función para cargar los proveedores del backend
-  const fetchProviders = async () => {
+  // Función para cargar los clientes del backend
+  const fetchClients = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:3001/api/providers'); // URL de tu backend para obtener proveedores
+      const response = await fetch('http://localhost:3001/api/clients'); // URL de tu backend para obtener clientes
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data: Provider[] = await response.json();
-      setProviders(data);
+      const data: Client[] = await response.json();
+      setClients(data);
     } catch (err: any) {
-      console.error("Error al obtener los proveedores:", err);
-      setError("No se pudieron cargar los proveedores. Intenta de nuevo más tarde.");
+      console.error("Error al obtener los clientes:", err);
+      setError("No se pudieron cargar los clientes. Intenta de nuevo más tarde.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Carga los proveedores cuando el componente se monta
+  // Carga los clientes cuando el componente se monta
   useEffect(() => {
-    fetchProviders();
+    fetchClients();
   }, []);
 
   // Funciones para abrir y cerrar el modal de Crear/Editar
   const handleShowCreateModal = () => {
-    setEditingProvider(null); // Asegurarse de que no haya proveedor en edición (modo crear)
+    setEditingClient(null); // Asegurarse de que no haya cliente en edición (modo crear)
     setShowFormModal(true);
     setActionMessage(null); // Limpiar mensajes al abrir modal
     setActionMessageType(null);
   };
 
-  const handleShowEditModal = (provider: Provider) => {
-    setEditingProvider(provider); // Establecer el proveedor a editar
+  const handleShowEditModal = (client: Client) => {
+    setEditingClient(client); // Establecer el cliente a editar
     setShowFormModal(true);
     setActionMessage(null); // Limpiar mensajes al abrir modal
     setActionMessageType(null);
@@ -69,19 +68,20 @@ const ProvidersPage: React.FC = () => {
 
   const handleCloseFormModal = () => {
     setShowFormModal(false);
-    setEditingProvider(null); // Limpiar el proveedor en edición al cerrar el modal
+    setEditingClient(null); // Limpiar el cliente en edición al cerrar el modal
   };
 
-  // Función que se llama cuando el formulario del modal guarda (crea o edita) un proveedor
-  const handleProviderSaved = () => {
-    fetchProviders(); // Recargar la lista de proveedores para ver los cambios
-    setActionMessage('Operación realizada con éxito.');
+  // Función que se llama cuando el formulario del modal guarda (crea o edita) un cliente
+  const handleClientSaved = () => {
+    fetchClients(); // Recargar la lista de clientes para ver los cambios
+    // El modal se cerrará automáticamente desde ClientForm al guardar con éxito
+    setActionMessage('Operación realizada con éxito.'); // Mensaje genérico de éxito
     setActionMessageType('success');
   };
 
   // --- Lógica para el modal de confirmación de eliminación ---
-  const handleShowDeleteConfirm = (provider: Provider) => {
-    setProviderToDelete(provider); // Guarda el proveedor a eliminar
+  const handleShowDeleteConfirm = (client: Client) => {
+    setClientToDelete(client); // Guarda el cliente a eliminar
     setShowDeleteConfirmModal(true); // Muestra el modal de confirmación
     setActionMessage(null); // Limpiar mensajes previos
     setActionMessageType(null);
@@ -89,32 +89,33 @@ const ProvidersPage: React.FC = () => {
 
   const handleCloseDeleteConfirm = () => {
     setShowDeleteConfirmModal(false);
-    setProviderToDelete(null); // Limpiar el proveedor a eliminar
+    setClientToDelete(null); // Limpiar el cliente a eliminar
   };
 
   const confirmDelete = async () => {
-    if (!providerToDelete) return; // Si no hay proveedor para eliminar, salir
+    if (!clientToDelete) return; // Si no hay cliente para eliminar, salir
 
-    const providerId = providerToDelete.id;
+    const clientId = clientToDelete.id;
     handleCloseDeleteConfirm(); // Cierra el modal de confirmación
 
     try {
-      const response = await fetch(`http://localhost:3001/api/providers/${providerId}`, {
-        method: 'DELETE',
+      const response = await fetch(`http://localhost:3001/api/clients/${clientId}`, {
+        method: 'DELETE', // Método DELETE
       });
 
-      if (response.ok) {
-        setActionMessage('Proveedor eliminado exitosamente.');
+      if (response.ok) { // Un 204 No Content también es 'ok'
+        setActionMessage('Cliente eliminado exitosamente.');
         setActionMessageType('success');
-        setProviders(prevProviders => prevProviders.filter(p => p.id !== providerId));
+        // Actualizar la lista de clientes en el frontend sin recargar toda la página
+        setClients(prevClients => prevClients.filter(c => c.id !== clientId));
       } else {
-        const errorData = await response.json();
-        setActionMessage(errorData.message || 'Error al eliminar el proveedor.');
+        const errorData = await response.json(); // Intentar leer el mensaje de error del backend
+        setActionMessage(errorData.message || 'Error al eliminar el cliente.');
         setActionMessageType('danger');
       }
     } catch (err) {
-      console.error("Error al eliminar el proveedor:", err);
-      setActionMessage('No se pudo conectar con el servidor para eliminar el proveedor.');
+      console.error("Error al eliminar el cliente:", err);
+      setActionMessage('No se pudo conectar con el servidor para eliminar el cliente.');
       setActionMessageType('danger');
     }
   };
@@ -125,9 +126,9 @@ const ProvidersPage: React.FC = () => {
     return (
       <Container className="my-5 text-center">
         <Spinner animation="border" role="status">
-          <span className="visually-hidden">Cargando proveedores...</span>
+          <span className="visually-hidden">Cargando clientes...</span>
         </Spinner>
-        <p>Cargando proveedores...</p>
+        <p>Cargando clientes...</p>
       </Container>
     );
   }
@@ -136,29 +137,30 @@ const ProvidersPage: React.FC = () => {
     return (
       <Container className="my-5">
         <Alert variant="danger">{error}</Alert>
-        <Button variant="secondary" onClick={fetchProviders}>Reintentar Carga</Button>
+        <Button variant="secondary" onClick={fetchClients}>Reintentar Carga</Button>
       </Container>
     );
   }
 
   return (
     <Container className="my-5">
-      <h2 className="mb-4">Gestión de Proveedores</h2>
+      <h2 className="mb-4">Gestión de Clientes</h2>
+      {/* Muestra mensajes de acciones (crear, editar, eliminar) */}
       {actionMessage && <Alert variant={actionMessageType || 'info'}>{actionMessage}</Alert>}
       <div className="d-flex justify-content-end mb-3">
+        {/* Botón para abrir el modal de creación de cliente */}
         <Button variant="success" onClick={handleShowCreateModal}>
-          Agregar Nuevo Proveedor
+          Agregar Nuevo Cliente
         </Button>
       </div>
-      {providers.length === 0 ? (
-        <Alert variant="info" className="text-center">No hay proveedores registrados. ¡Agrega uno nuevo!</Alert>
+      {clients.length === 0 ? (
+        <Alert variant="info" className="text-center">No hay clientes registrados. ¡Agrega uno nuevo!</Alert>
       ) : (
         <Table striped bordered hover responsive>
           <thead>
             <tr>
               <th>ID</th>
               <th>Nombre</th>
-              <th>Contacto</th>
               <th>Email</th>
               <th>Teléfono</th>
               <th>Dirección</th>
@@ -166,27 +168,26 @@ const ProvidersPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {providers.map((provider) => (
-              <tr key={provider.id}>
-                <td>{provider.id}</td>
-                <td>{provider.name}</td>
-                <td>{provider.contactPerson}</td>
-                <td>{provider.email}</td>
-                <td>{provider.phone}</td>
-                <td>{provider.address}</td>
+            {clients.map((client) => (
+              <tr key={client.id}>
+                <td>{client.id}</td>
+                <td>{client.name}</td>
+                <td>{client.email}</td>
+                <td>{client.phone}</td>
+                <td>{client.address}</td>
                 <td className="text-center">
                   <Button
                     variant="info"
                     size="sm"
                     className="me-2"
-                    onClick={() => handleShowEditModal(provider)}
+                    onClick={() => handleShowEditModal(client)} // Llama a handleShowEditModal
                   >
                     Editar
                   </Button>
                   <Button
                     variant="danger"
                     size="sm"
-                    onClick={() => handleShowDeleteConfirm(provider)}
+                    onClick={() => handleShowDeleteConfirm(client)} // Llama al modal de confirmación
                   >
                     Eliminar
                   </Button>
@@ -197,12 +198,12 @@ const ProvidersPage: React.FC = () => {
         </Table>
       )}
 
-      {/* El componente ProviderForm ahora se renderiza como un Modal */}
-      <ProviderForm
+      {/* El componente ClientForm ahora se renderiza como un Modal */}
+      <ClientForm
         show={showFormModal}
         onHide={handleCloseFormModal}
-        onSave={handleProviderSaved}
-        editingProvider={editingProvider}
+        onSave={handleClientSaved}
+        editingClient={editingClient}
       />
 
       {/* Modal de Confirmación de Eliminación */}
@@ -211,7 +212,7 @@ const ProvidersPage: React.FC = () => {
           <Modal.Title>Confirmar Eliminación</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          ¿Estás seguro de que quieres eliminar al proveedor **{providerToDelete?.name}** (ID: {providerToDelete?.id})? Esta acción no se puede deshacer.
+          ¿Estás seguro de que quieres eliminar al cliente **{clientToDelete?.name}** (ID: {clientToDelete?.id})? Esta acción no se puede deshacer.
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseDeleteConfirm}>
@@ -226,4 +227,4 @@ const ProvidersPage: React.FC = () => {
   );
 };
 
-export default ProvidersPage;
+export default ClientsPage;
