@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Row, Col, Alert, Spinner, Modal } from 'react-bootstrap';
 
+// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
+import api from '../api/axiosConfig';
+
 // Define la interfaz para la estructura de tus proveedores
 interface Provider {
   id: string;
@@ -18,6 +21,13 @@ interface ProviderFormProps {
   onHide: () => void; // Función para cerrar el modal
   onSave: () => void; // Función para notificar al padre que se guardó algo y refresque la tabla
   editingProvider: Provider | null; // El proveedor a editar, o null si es un nuevo proveedor
+}
+
+// --- NUEVA INTERFAZ PARA LA RESPUESTA DE LA API (similar a ProductApiResponse) ---
+interface ProviderApiResponse {
+  message?: string; // Mensaje opcional del backend
+  // Si tu backend devuelve el proveedor creado/actualizado en la respuesta,
+  // puedes añadirlo aquí, por ejemplo: provider?: Provider;
 }
 
 const ProviderForm: React.FC<ProviderFormProps> = ({ show, onHide, onSave, editingProvider }) => {
@@ -77,37 +87,33 @@ const ProviderForm: React.FC<ProviderFormProps> = ({ show, onHide, onSave, editi
     };
 
     try {
-      const method = editingProvider ? 'PUT' : 'POST'; // Si hay editingProvider, es PUT; si no, es POST
-      const url = editingProvider
-        ? `http://localhost:3001/api/providers/${editingProvider.id}`
-        : 'http://localhost:3001/api/providers';
-
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(providerDataToSend),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(data.message || `Proveedor ${editingProvider ? 'actualizado' : 'guardado'} exitosamente.`);
-        setMessageType('success');
-        onSave(); // Notificar al padre que la operación fue exitosa
-
-        setTimeout(() => {
-          onHide(); // Cerrar el modal
-        }, 1000);
-
+      let response;
+      if (editingProvider) {
+        // --- CAMBIO: Usar api.put para actualizar y especificar el tipo de respuesta ---
+        response = await api.put<ProviderApiResponse>(`/providers/${editingProvider.id}`, providerDataToSend);
       } else {
-        setMessage(data.message || `Error al ${editingProvider ? 'actualizar' : 'guardar'} el proveedor.`);
-        setMessageType('danger');
+        // --- CAMBIO: Usar api.post para crear y especificar el tipo de respuesta ---
+        response = await api.post<ProviderApiResponse>('/providers', providerDataToSend);
       }
-    } catch (error) {
-      console.error('Error de red o del servidor:', error);
-      setMessage('No se pudo conectar con el servidor. Intenta de nuevo más tarde.');
+
+      // Axios no lanza error para 2xx, así que si llegamos aquí, fue exitoso
+      // Ahora TypeScript sabe que response.data tiene la propiedad 'message'
+      setMessage(response.data.message || `Proveedor ${editingProvider ? 'actualizado' : 'guardado'} exitosamente.`);
+      setMessageType('success');
+      onSave(); // Notificar al padre que la operación fue exitosa
+
+      setTimeout(() => {
+        onHide(); // Cerrar el modal
+      }, 1000);
+
+    } catch (error: any) { // Mantenemos 'any' para el error general
+      console.error('Error al guardar/actualizar el proveedor:', error);
+      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
+      if (error.response && error.response.data && error.response.data.message) {
+        setMessage(error.response.data.message);
+      } else {
+        setMessage('No se pudo conectar con el servidor. Intenta de nuevo más tarde.');
+      }
       setMessageType('danger');
     } finally {
       setLoading(false);

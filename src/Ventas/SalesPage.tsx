@@ -1,7 +1,10 @@
 // src/pages/SalesPage.tsx
 import React, { useEffect, useState } from 'react';
 import { Container, Table, Button, Spinner, Alert, ListGroup, Collapse } from 'react-bootstrap';
-import SaleFormModal from './SaleFormModal'; // Importa el SaleFormModal
+import SaleFormModal from '../Ventas/SaleFormModal'; // Ajusta la ruta si es necesario
+
+// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
+import api from '../api/axiosConfig';
 
 // Interfaces necesarias
 interface SaleItem {
@@ -41,22 +44,22 @@ const SalesPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.get' EN LUGAR DE 'fetch'! ---
       const [salesRes, clientsRes] = await Promise.all([
-        fetch('http://localhost:3001/api/sales'),
-        fetch('http://localhost:3001/api/clients')
+        api.get<Sale[]>('/sales'),
+        api.get<Client[]>('/clients')
       ]);
 
-      if (!salesRes.ok) throw new Error(`HTTP error! Sales status: ${salesRes.status}`);
-      if (!clientsRes.ok) throw new Error(`HTTP error! Clients status: ${clientsRes.status}`);
-
-      const salesData: Sale[] = await salesRes.json();
-      const clientsData: Client[] = await clientsRes.json();
-
-      setSales(salesData);
-      setClients(clientsData);
-    } catch (err: any) {
+      setSales(salesRes.data); // Los datos están en response.data
+      setClients(clientsRes.data); // Los datos están en response.data
+    } catch (err: any) { // Mantenemos 'any' para el error general
       console.error("Error al obtener ventas o clientes:", err);
-      setError("No se pudieron cargar las ventas. Intenta de nuevo más tarde.");
+      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        setError("Tu sesión ha expirado o no tienes permisos para ver ventas.");
+      } else {
+        setError("No se pudieron cargar las ventas. Intenta de nuevo más tarde.");
+      }
     } finally {
       setLoading(false);
     }

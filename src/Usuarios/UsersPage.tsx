@@ -1,7 +1,10 @@
 // src/pages/UsersPage.tsx
 import React, { useEffect, useState } from 'react';
 import { Container, Table, Button, Spinner, Alert, Modal } from 'react-bootstrap';
-import UserForm from './UserForm'; // Importa el UserForm
+import UserForm from '../Usuarios/UserForm'; // Ajusta la ruta si es necesario
+
+// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
+import api from '../api/axiosConfig';
 
 // Define la interfaz para la estructura de tus usuarios (sin contraseña para la tabla)
 interface User {
@@ -30,16 +33,18 @@ const UsersPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.get' EN LUGAR DE 'fetch'! ---
       // Nota: La API para users_management filtra la contraseña en GET
-      const response = await fetch('http://localhost:3001/api/users_management');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: User[] = await response.json();
-      setUsers(data);
+      const response = await api.get<User[]>('/users_management'); // Axios ya maneja la URL base y el JSON
+      setUsers(response.data); // Los datos están en response.data
     } catch (err: any) {
       console.error("Error al obtener los usuarios:", err);
-      setError("No se pudieron cargar los usuarios. Intenta de nuevo más tarde.");
+      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        setError("Tu sesión ha expirado o no tienes permisos para ver usuarios.");
+      } else {
+        setError("No se pudieron cargar los usuarios. Intenta de nuevo más tarde.");
+      }
     } finally {
       setLoading(false);
     }
@@ -87,7 +92,7 @@ const UsersPage: React.FC = () => {
 
   const handleCloseDeleteConfirm = () => {
     setShowDeleteConfirmModal(false);
-    setUserToDelete(null); // Limpiar el usuario a eliminar
+    setUserToDelete(null);
   };
 
   const confirmDelete = async () => {
@@ -97,22 +102,21 @@ const UsersPage: React.FC = () => {
     handleCloseDeleteConfirm(); // Cierra el modal de confirmación
 
     try {
-      const response = await fetch(`http://localhost:3001/api/users_management/${userId}`, {
-        method: 'DELETE',
-      });
+      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.delete' EN LUGAR DE 'fetch'! ---
+      // Axios maneja el 204 No Content como una respuesta exitosa
+      await api.delete(`/users_management/${userId}`);
 
-      if (response.ok) {
-        setActionMessage('Usuario eliminado exitosamente.');
-        setActionMessageType('success');
-        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
-      } else {
-        const errorData = await response.json();
-        setActionMessage(errorData.message || 'Error al eliminar el usuario.');
-        setActionMessageType('danger');
-      }
-    } catch (err) {
+      setActionMessage('Usuario eliminado exitosamente.');
+      setActionMessageType('success');
+      setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+    } catch (err: any) {
       console.error("Error al eliminar el usuario:", err);
-      setActionMessage('No se pudo conectar con el servidor para eliminar el usuario.');
+      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
+      if (err.response && err.response.data && err.response.data.message) {
+        setActionMessage(err.response.data.message);
+      } else {
+        setActionMessage('No se pudo conectar con el servidor para eliminar el usuario.');
+      }
       setActionMessageType('danger');
     }
   };
@@ -139,7 +143,7 @@ const UsersPage: React.FC = () => {
     );
   }
 
- return (
+  return (
     <Container className="my-5 animate__animated animate__fadeInUp">
       <h2 className="mb-4 animate__animated animate__fadeInUp">
         Gestión de Usuarios

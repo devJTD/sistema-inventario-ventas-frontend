@@ -1,7 +1,9 @@
 // src/components/ProductForm.tsx
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Row, Col, Alert, Spinner, Modal } from 'react-bootstrap';
-// Ya no necesitamos useParams ni useNavigate aquí
+
+// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
+import api from '../api/axiosConfig';
 
 // Define la interfaz para la estructura de tus productos
 interface Product {
@@ -20,6 +22,15 @@ interface ProductFormProps {
   onSave: () => void; // Función para notificar al padre que se guardó algo y refresque la tabla
   editingProduct: Product | null; // El producto a editar, o null si es un nuevo producto
 }
+
+// --- NUEVA INTERFAZ PARA LA RESPUESTA DE LA API ---
+// Tu backend devuelve un 'message' y el objeto del producto guardado/actualizado.
+interface ProductApiResponse {
+  message?: string; // Mensaje opcional del backend
+  // Si tu backend devuelve el producto creado/actualizado en la respuesta,
+  // puedes añadirlo aquí, por ejemplo: product?: Product;
+}
+
 
 const ProductForm: React.FC<ProductFormProps> = ({ show, onHide, onSave, editingProduct }) => {
   // Estados para cada campo del formulario
@@ -87,38 +98,34 @@ const ProductForm: React.FC<ProductFormProps> = ({ show, onHide, onSave, editing
     };
 
     try {
-      const method = editingProduct ? 'PUT' : 'POST'; // Si hay editingProduct, es PUT; si no, es POST
-      const url = editingProduct
-        ? `http://localhost:3001/api/products/${editingProduct.id}`
-        : 'http://localhost:3001/api/products';
-
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(productDataToSend),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(data.message || `Producto ${editingProduct ? 'actualizado' : 'guardado'} exitosamente.`);
-        setMessageType('success');
-        onSave(); // Notificar al padre que la operación fue exitosa
-
-        // Opcional: Cerrar el modal automáticamente después de un éxito (o dejarlo abierto para otro guardado rápido)
-        setTimeout(() => {
-          onHide(); // Cerrar el modal
-        }, 1000); // Dar un segundo para que el usuario vea el mensaje de éxito
-
+      let response;
+      if (editingProduct) {
+        // --- CAMBIO: Usar api.put para actualizar y especificar el tipo de respuesta ---
+        response = await api.put<ProductApiResponse>(`/products/${editingProduct.id}`, productDataToSend);
       } else {
-        setMessage(data.message || `Error al ${editingProduct ? 'actualizar' : 'guardar'} el producto.`);
-        setMessageType('danger');
+        // --- CAMBIO: Usar api.post para crear y especificar el tipo de respuesta ---
+        response = await api.post<ProductApiResponse>('/products', productDataToSend);
       }
-    } catch (error) {
-      console.error('Error de red o del servidor:', error);
-      setMessage('No se pudo conectar con el servidor. Intenta de nuevo más tarde.');
+
+      // Axios no lanza error para 2xx, así que si llegamos aquí, fue exitoso
+      // Ahora TypeScript sabe que response.data tiene la propiedad 'message'
+      setMessage(response.data.message || `Producto ${editingProduct ? 'actualizado' : 'guardado'} exitosamente.`);
+      setMessageType('success');
+      onSave(); // Notificar al padre que la operación fue exitosa
+
+      // Cerrar el modal automáticamente después de un éxito
+      setTimeout(() => {
+        onHide(); // Cerrar el modal
+      }, 1000);
+
+    } catch (error: any) { // Mantenemos 'any' para el error general
+      console.error('Error al guardar/actualizar el producto:', error);
+      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
+      if (error.response && error.response.data && error.response.data.message) {
+        setMessage(error.response.data.message);
+      } else {
+        setMessage('No se pudo conectar con el servidor. Intenta de nuevo más tarde.');
+      }
       setMessageType('danger');
     } finally {
       setLoading(false);

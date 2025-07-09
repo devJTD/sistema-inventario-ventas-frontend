@@ -1,7 +1,10 @@
 // src/pages/ProvidersPage.tsx
 import React, { useEffect, useState } from 'react';
 import { Container, Table, Button, Spinner, Alert, Modal } from 'react-bootstrap';
-import ProviderForm from './ProviderForm'; // Importa el ProviderForm
+import ProviderForm from '../Proveedores/ProviderForm'; // Ajusta la ruta si es necesario
+
+// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
+import api from '../api/axiosConfig';
 
 // Define la interfaz para la estructura de tus proveedores
 interface Provider {
@@ -22,26 +25,28 @@ const ProvidersPage: React.FC = () => {
 
   // Estados para el modal de Crear/Editar
   const [showFormModal, setShowFormModal] = useState<boolean>(false);
-  const [editingProvider, setEditingProvider] = useState<Provider | null>(null); // Proveedor a editar, o null para crear
+  const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
 
   // Estados para el modal de Confirmación de Eliminación
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
-  const [providerToDelete, setProviderToDelete] = useState<Provider | null>(null); // Proveedor que se va a eliminar
+  const [providerToDelete, setProviderToDelete] = useState<Provider | null>(null);
 
   // Función para cargar los proveedores del backend
   const fetchProviders = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:3001/api/providers'); // URL de tu backend para obtener proveedores
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: Provider[] = await response.json();
-      setProviders(data);
+      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.get' EN LUGAR DE 'fetch'! ---
+      const response = await api.get<Provider[]>('/providers'); // Axios ya maneja la URL base y el JSON
+      setProviders(response.data); // Los datos están en response.data
     } catch (err: any) {
       console.error("Error al obtener los proveedores:", err);
-      setError("No se pudieron cargar los proveedores. Intenta de nuevo más tarde.");
+      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        setError("Tu sesión ha expirado o no tienes permisos para ver proveedores.");
+      } else {
+        setError("No se pudieron cargar los proveedores. Intenta de nuevo más tarde.");
+      }
     } finally {
       setLoading(false);
     }
@@ -54,22 +59,22 @@ const ProvidersPage: React.FC = () => {
 
   // Funciones para abrir y cerrar el modal de Crear/Editar
   const handleShowCreateModal = () => {
-    setEditingProvider(null); // Asegurarse de que no haya proveedor en edición (modo crear)
+    setEditingProvider(null);
     setShowFormModal(true);
-    setActionMessage(null); // Limpiar mensajes al abrir modal
+    setActionMessage(null);
     setActionMessageType(null);
   };
 
   const handleShowEditModal = (provider: Provider) => {
-    setEditingProvider(provider); // Establecer el proveedor a editar
+    setEditingProvider(provider);
     setShowFormModal(true);
-    setActionMessage(null); // Limpiar mensajes al abrir modal
+    setActionMessage(null);
     setActionMessageType(null);
   };
 
   const handleCloseFormModal = () => {
     setShowFormModal(false);
-    setEditingProvider(null); // Limpiar el proveedor en edición al cerrar el modal
+    setEditingProvider(null);
   };
 
   // Función que se llama cuando el formulario del modal guarda (crea o edita) un proveedor
@@ -81,45 +86,43 @@ const ProvidersPage: React.FC = () => {
 
   // --- Lógica para el modal de confirmación de eliminación ---
   const handleShowDeleteConfirm = (provider: Provider) => {
-    setProviderToDelete(provider); // Guarda el proveedor a eliminar
-    setShowDeleteConfirmModal(true); // Muestra el modal de confirmación
-    setActionMessage(null); // Limpiar mensajes previos
+    setProviderToDelete(provider);
+    setShowDeleteConfirmModal(true);
+    setActionMessage(null);
     setActionMessageType(null);
   };
 
   const handleCloseDeleteConfirm = () => {
     setShowDeleteConfirmModal(false);
-    setProviderToDelete(null); // Limpiar el proveedor a eliminar
+    setProviderToDelete(null);
   };
 
   const confirmDelete = async () => {
-    if (!providerToDelete) return; // Si no hay proveedor para eliminar, salir
+    if (!providerToDelete) return;
 
     const providerId = providerToDelete.id;
-    handleCloseDeleteConfirm(); // Cierra el modal de confirmación
+    handleCloseDeleteConfirm();
 
     try {
-      const response = await fetch(`http://localhost:3001/api/providers/${providerId}`, {
-        method: 'DELETE',
-      });
+      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.delete' EN LUGAR DE 'fetch'! ---
+      // Axios maneja el 204 No Content como una respuesta exitosa
+      await api.delete(`/providers/${providerId}`);
 
-      if (response.ok) {
-        setActionMessage('Proveedor eliminado exitosamente.');
-        setActionMessageType('success');
-        setProviders(prevProviders => prevProviders.filter(p => p.id !== providerId));
-      } else {
-        const errorData = await response.json();
-        setActionMessage(errorData.message || 'Error al eliminar el proveedor.');
-        setActionMessageType('danger');
-      }
-    } catch (err) {
+      setActionMessage('Proveedor eliminado exitosamente.');
+      setActionMessageType('success');
+      setProviders(prevProviders => prevProviders.filter(p => p.id !== providerId));
+    } catch (err: any) {
       console.error("Error al eliminar el proveedor:", err);
-      setActionMessage('No se pudo conectar con el servidor para eliminar el proveedor.');
+      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
+      if (err.response && err.response.data && err.response.data.message) {
+        setActionMessage(err.response.data.message);
+      } else {
+        setActionMessage('No se pudo conectar con el servidor para eliminar el proveedor.');
+      }
       setActionMessageType('danger');
     }
   };
   // --- Fin lógica modal de confirmación de eliminación ---
-
 
   if (loading) {
     return (
@@ -141,7 +144,7 @@ const ProvidersPage: React.FC = () => {
     );
   }
 
-   return (
+  return (
     <Container className="my-5 animate__animated animate__fadeInUp">
       <h2 className="mb-4 animate__animated animate__fadeInUp">
         Gestión de Proveedores

@@ -2,12 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Row, Col, Alert, Spinner, Table } from 'react-bootstrap';
 
+// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
+import api from '../api/axiosConfig';
+
 // Interfaces necesarias
 interface Product {
   id: string;
   name: string;
   price: number;
   stock: number;
+  category?: string; // Hago category opcional por si no siempre viene en la respuesta de productos
 }
 
 interface Client {
@@ -28,6 +32,15 @@ interface SaleFormModalProps {
   onSaleSuccess: () => void; // Para que el componente padre recargue la lista de ventas
 }
 
+// --- NUEVA INTERFAZ PARA LA RESPUESTA DE LA API DE VENTAS ---
+interface SaleApiResponse {
+  message?: string;
+  details?: string[]; // Para mensajes de error detallados del backend
+  // Si tu backend devuelve el objeto de venta creado, puedes añadirlo aquí:
+  // sale?: { id: string; total: number; /* ...otras propiedades de venta */ };
+}
+
+
 const SaleFormModal: React.FC<SaleFormModalProps> = ({ show, onHide, onSaleSuccess }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -45,23 +58,23 @@ const SaleFormModal: React.FC<SaleFormModalProps> = ({ show, onHide, onSaleSucce
       const fetchClientsAndProducts = async () => {
         try {
           const [clientsRes, productsRes] = await Promise.all([
-            fetch('http://localhost:3001/api/clients'),
-            fetch('http://localhost:3001/api/products')
+            api.get<Client[]>('/clients'),
+            api.get<Product[]>('/products')
           ]);
 
-          const clientsData: Client[] = await clientsRes.json();
-          const productsData: Product[] = await productsRes.json();
-
-          setClients(clientsData);
-          setProducts(productsData.filter(p => p.stock > 0)); // Solo productos con stock > 0
-        } catch (error) {
+          setClients(clientsRes.data);
+          setProducts(productsRes.data.filter(p => p.stock > 0));
+        } catch (error: any) {
           console.error("Error al cargar datos para la venta:", error);
-          setMessage('Error al cargar clientes o productos. Intenta de nuevo.');
+          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            setMessage("Tu sesión ha expirado o no tienes permisos para cargar clientes/productos.");
+          } else {
+            setMessage('Error al cargar clientes o productos. Intenta de nuevo.');
+          }
           setMessageType('danger');
         }
       };
       fetchClientsAndProducts();
-      // Limpiar formulario al abrir
       setSelectedClientId('');
       setSelectedProductId('');
       setQuantity('1');
@@ -90,16 +103,13 @@ const SaleFormModal: React.FC<SaleFormModalProps> = ({ show, onHide, onSaleSucce
         return;
       }
 
-      // Buscar si el producto ya está en la lista de ítems de la venta
       const existingItemIndex = saleItems.findIndex(item => item.productId === selectedProductId);
 
       if (existingItemIndex !== -1) {
-        // Si el producto ya está, actualiza la cantidad
         const updatedItems = [...saleItems];
         updatedItems[existingItemIndex].quantity += qtyNum;
         setSaleItems(updatedItems);
       } else {
-        // Si es un producto nuevo, añádelo
         setSaleItems([...saleItems, {
           productId: productToAdd.id,
           name: productToAdd.name,
@@ -108,12 +118,10 @@ const SaleFormModal: React.FC<SaleFormModalProps> = ({ show, onHide, onSaleSucce
         }]);
       }
 
-      // Resta temporalmente el stock en la lista de productos para evitar sobreventas en el formulario
       setProducts(prevProducts => prevProducts.map(p =>
         p.id === productToAdd.id ? { ...p, stock: p.stock - qtyNum } : p
       ));
 
-      // Limpiar selección de producto y cantidad para el siguiente
       setSelectedProductId('');
       setQuantity('1');
     }
@@ -124,7 +132,6 @@ const SaleFormModal: React.FC<SaleFormModalProps> = ({ show, onHide, onSaleSucce
     const itemToRemove = saleItems[index];
     setSaleItems(prevItems => prevItems.filter((_, i) => i !== index));
 
-    // Devolver el stock al producto en la lista temporal de productos
     setProducts(prevProducts => prevProducts.map(p =>
       p.id === itemToRemove.productId ? { ...p, stock: p.stock + itemToRemove.quantity } : p
     ));
@@ -160,33 +167,25 @@ const SaleFormModal: React.FC<SaleFormModalProps> = ({ show, onHide, onSaleSucce
     };
 
     try {
-      const response = await fetch('http://localhost:3001/api/sales', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(saleData),
-      });
+      // FIX: Desestructura 'data' directamente de la respuesta de Axios
+      const { data } = await api.post<SaleApiResponse>('/sales', saleData);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage('Venta registrada exitosamente.');
-        setMessageType('success');
-        onSaleSuccess(); // Notificar al padre para recargar la lista de ventas
-        setTimeout(() => {
-          onHide(); // Cerrar el modal
-        }, 1500); // Dar un poco de tiempo para ver el mensaje
-      } else {
-        setMessage(data.message || 'Error al registrar la venta.');
-        if (data.details) {
-          setMessage(prev => `${prev}\n${data.details.join('\n')}`);
-        }
-        setMessageType('danger');
-      }
-    } catch (error) {
+      setMessage(data.message || 'Venta registrada exitosamente.'); // Usa 'data.message'
+      setMessageType('success');
+      onSaleSuccess();
+      setTimeout(() => {
+        onHide();
+      }, 1500);
+    } catch (error: any) {
       console.error('Error de red al registrar venta:', error);
-      setMessage('No se pudo conectar con el servidor. Intenta de nuevo más tarde.');
+      if (error.response && error.response.data) {
+        setMessage(error.response.data.message || 'Error al registrar la venta.');
+        if (error.response.data.details && Array.isArray(error.response.data.details)) {
+          setMessage(prev => `${prev}\n${error.response.data.details.join('\n')}`);
+        }
+      } else {
+        setMessage('No se pudo conectar con el servidor. Intenta de nuevo más tarde.');
+      }
       setMessageType('danger');
     } finally {
       setLoading(false);

@@ -1,19 +1,30 @@
 // src/pages/LoginPage.tsx
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
-// --- CORRECCIÓN AQUÍ ---
-import type { UserRole } from '../App'; // Añade 'type' antes de { UserRole }
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../api/axiosConfig';
 
-// Definimos los props que este componente esperará
-interface LoginPageProps {
-  onLogin: (role: UserRole) => void;
+// Define la interfaz para la respuesta exitosa del login de tu backend
+interface LoginResponse {
+  token: string;
+  user: {
+    id: string;
+    username: string;
+    role: 'admin' | 'vendedor' | 'almacenista'; // Asegúrate de que estos roles coincidan con tu backend
+    // Agrega cualquier otra propiedad que tu objeto 'user' tenga
+  };
+  message?: string; // El mensaje es opcional
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+const LoginPage: React.FC = () => {
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [message, setMessage] = useState<string | null>(null);
   const [messageType, setMessageType] = useState<'success' | 'danger' | null>(null);
+
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -27,27 +38,25 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
+      // <LoginResponse> le dice a Axios qué forma tendrá response.data
+      const response = await api.post<LoginResponse>('/login', { username, password });
 
-      const data = await response.json();
+      // Ahora TypeScript sabe que response.data contiene 'token' y 'user'
+      const { token, user } = response.data;
 
-      if (response.ok) {
-        setMessage(data.message || 'Login exitoso.');
-        setMessageType('success');
-        onLogin(data.user.role as UserRole);
+      login(token, user);
+
+      setMessage(response.data.message || 'Login exitoso.');
+      setMessageType('success');
+      navigate('/dashboard');
+
+    } catch (error: any) { // Mantenemos 'any' aquí para la flexibilidad en el manejo de errores generales
+      console.error('Error al iniciar sesión:', error);
+      if (error.response && error.response.data && error.response.data.message) {
+        setMessage(error.response.data.message);
       } else {
-        setMessage(data.message || 'Error al iniciar sesión.');
-        setMessageType('danger');
+        setMessage('No se pudo conectar con el servidor o error desconocido. Intenta de nuevo más tarde.');
       }
-    } catch (error) {
-      console.error('Error de red o del servidor:', error);
-      setMessage('No se pudo conectar con el servidor. Intenta de nuevo más tarde.');
       setMessageType('danger');
     }
   };
