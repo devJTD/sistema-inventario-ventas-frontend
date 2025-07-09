@@ -116,63 +116,76 @@ const DashboardPage: React.FC = () => {
 
   return (
     // AÑADIDO: pb-5 para padding-bottom en el contenedor principal
-    <Container className="my-5 pb-5"> 
+    <Container className="my-5 pb-5">
       <Row className="justify-content-center mb-4">
-        <Col md={8} className="text-center">
-          <h1>¡Bienvenido a tu Sistema de Inventario y Ventas!</h1>
-          <p className="lead">
-            Gestiona tus productos, ventas, clientes y proveedores de forma eficiente.
+        <Col md={8} className="text-center animate__animated animate__fadeInUp">
+          <h1 className="animate__animated animate__fadeInUp">
+            ¡Bienvenido a tu Sistema de Inventario y Ventas!
+          </h1>
+          <p className="lead animate__animated animate__fadeInUp">
+            Gestiona tus productos, ventas, clientes y proveedores de forma
+            eficiente.
           </p>
         </Col>
       </Row>
 
-      <Row className="justify-content-center">
+      <Row className="justify-content-center animate__animated animate__fadeInUp">
         {/* Tarjeta de Resumen: Total Productos */}
-        <Col md={4} className="mb-4">
-          <Card className="text-center shadow-sm">
+        <Col md={4} className="mb-4 animate__animated animate__fadeInUp">
+          <Card className="text-center shadow-sm animate__animated animate__fadeInUp">
             <Card.Body>
               <Card.Title>Total Productos Registrados</Card.Title>
               <Card.Text className="fs-1 fw-bold">
-                {totalProducts !== null ? totalProducts : 'Cargando...'}
+                {totalProducts !== null ? totalProducts : "Cargando..."}
               </Card.Text>
-              <Button variant="primary" onClick={goToProducts}>Ir a Productos</Button>
+              <Button variant="primary" onClick={goToProducts}>
+                Ir a Productos
+              </Button>
             </Card.Body>
           </Card>
         </Col>
 
         {/* Tarjeta de Resumen: Total Clientes */}
-        <Col md={4} className="mb-4">
-          <Card className="text-center shadow-sm">
+        <Col md={4} className="mb-4 animate__animated animate__fadeInUp">
+          <Card className="text-center shadow-sm animate__animated animate__fadeInUp">
             <Card.Body>
               <Card.Title>Total Clientes Registrados</Card.Title>
-              <Card.Text className="fs-1 fw-bold">
-                {totalClients !== null ? totalClients : 'Cargando...'}
+              <Card.Text className="fs-1 fw-bold animate__animated animate__fadeInUp">
+                {totalClients !== null ? totalClients : "Cargando..."}
               </Card.Text>
-              <Button variant="info" onClick={goToClients}>Ver Clientes</Button>
+              <Button variant="info" onClick={goToClients}>
+                Ver Clientes
+              </Button>
             </Card.Body>
           </Card>
         </Col>
 
         {/* Tarjeta de Resumen: Total Ventas */}
-        <Col md={4} className="mb-4">
-          <Card className="text-center shadow-sm">
+        <Col md={4} className="mb-4 animate__animated animate__fadeInUp">
+          <Card className="text-center shadow-sm animate__animated animate__fadeInUp">
             <Card.Body>
               <Card.Title>Total Ventas (Acumulado)</Card.Title>
-              <Card.Text className="fs-1 fw-bold">
-                {totalSalesAmount !== null ? `$${totalSalesAmount.toFixed(2)}` : 'Cargando...'}
+              <Card.Text className="fs-1 fw-bold animate__animated animate__fadeInUp">
+                {totalSalesAmount !== null
+                  ? `$${totalSalesAmount.toFixed(2)}`
+                  : "Cargando..."}
               </Card.Text>
-              <Button variant="success" onClick={goToNewSale}>Registrar Nueva Venta</Button>
+              <Button variant="success" onClick={goToNewSale}>
+                Registrar Nueva Venta
+              </Button>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
       {/* Sección del Gráfico */}
-      <Row className="mt-5 justify-content-center">
+      <Row className="mt-5 justify-content-center animate__animated animate__fadeInUp">
         <Col md={8}>
-          <Card className="p-3 shadow-sm">
+          <Card className="p-3 shadow-sm animate__animated animate__fadeInUp">
             <Card.Body>
-              <Card.Title className="text-center mb-4">Distribución de Productos por Categoría</Card.Title>
+              <Card.Title className="text-center mb-4 animate__animated animate__fadeInUp">
+                Distribución de Productos por Categoría
+              </Card.Title>
               {productsByCategory.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -190,7 +203,10 @@ const DashboardPage: React.FC = () => {
                       isAnimationActive={true} // Habilita la animación
                     >
                       {productsByCategory.map((_entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
                       ))}
                     </Pie>
                     <Tooltip /> {/* Muestra información al pasar el ratón */}
@@ -198,7 +214,9 @@ const DashboardPage: React.FC = () => {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <Alert variant="info" className="text-center">No hay datos de productos para mostrar en el gráfico.</Alert>
+                <Alert variant="info" className="text-center ">
+                  No hay datos de productos para mostrar en el gráfico.
+                </Alert>
               )}
             </Card.Body>
           </Card>
@@ -206,14 +224,15 @@ const DashboardPage: React.FC = () => {
       </Row>
 
       {/* Sección de Información General del Sistema - Eliminamos mb-5 de la Row y agregamos pb-5 al Container */}
-      <Row className="mt-4"> 
+      <Row className="mt-4 animate__animated animate__fadeInUp">
         <Col>
-          <Card className="p-3 shadow-sm">
+          <Card className="p-3 shadow-sm animate__animated animate__fadeInUp">
             <Card.Body>
               <Card.Title>Información General del Sistema</Card.Title>
               <Card.Text>
-                Este panel te ofrece una vista rápida de los datos clave de tu sistema de inventario y ventas.
-                Puedes navegar a las secciones específicas usando el menú superior para una gestión detallada.
+                Este panel te ofrece una vista rápida de los datos clave de tu
+                sistema de inventario y ventas. Puedes navegar a las secciones
+                específicas usando el menú superior para una gestión detallada.
               </Card.Text>
             </Card.Body>
           </Card>

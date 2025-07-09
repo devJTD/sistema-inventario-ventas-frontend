@@ -9,6 +9,7 @@ import ClientsPage from './Clientes/ClientsPage';
 import ProvidersPage from './Proveedores/ProvidersPage';
 import SalesPage from './Ventas/SalesPage';
 import UsersPage from './Usuarios/UsersPage';
+import "animate.css";
 
 export type UserRole = 'admin' | 'vendedor' | 'almacenista' | null;
 

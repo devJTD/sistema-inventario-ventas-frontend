@@ -143,18 +143,27 @@ const ClientsPage: React.FC = () => {
   }
 
   return (
-    <Container className="my-5">
-      <h2 className="mb-4">Gestión de Clientes</h2>
+    <Container className="my-5 animate__animated animate__fadeInUp">
+      <h2 className="mb-4 animate__animated animate__fadeInUp">
+        Gestión de Clientes
+      </h2>
       {/* Muestra mensajes de acciones (crear, editar, eliminar) */}
-      {actionMessage && <Alert variant={actionMessageType || 'info'}>{actionMessage}</Alert>}
-      <div className="d-flex justify-content-end mb-3">
+      {actionMessage && (
+        <Alert variant={actionMessageType || "info"}>{actionMessage}</Alert>
+      )}
+      <div className="d-flex justify-content-end mb-3 animate__animated animate__fadeInUp ">
         {/* Botón para abrir el modal de creación de cliente */}
         <Button variant="success" onClick={handleShowCreateModal}>
           Agregar Nuevo Cliente
         </Button>
       </div>
       {clients.length === 0 ? (
-        <Alert variant="info" className="text-center">No hay clientes registrados. ¡Agrega uno nuevo!</Alert>
+        <Alert
+          variant="info"
+          className="text-center animate__animated animate__fadeInUp"
+        >
+          No hay clientes registrados. ¡Agrega uno nuevo!
+        </Alert>
       ) : (
         <Table striped bordered hover responsive>
           <thead>

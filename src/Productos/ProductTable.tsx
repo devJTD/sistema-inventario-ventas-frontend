@@ -145,18 +145,24 @@ const ProductTable: React.FC = () => {
   }
 
   return (
-    <Container className="my-5">
-      <h2 className="mb-4">Gestión de Productos</h2>
+    <Container className="my-5 animate__animated animate__fadeInUp">
+      <h2 className="mb-4 animate__animated animate__fadeInUp">
+        Gestión de Productos
+      </h2>
       {/* Muestra mensajes de acciones (crear, editar, eliminar) */}
-      {actionMessage && <Alert variant={actionMessageType || 'info'}>{actionMessage}</Alert>}
-      <div className="d-flex justify-content-end mb-3">
+      {actionMessage && (
+        <Alert variant={actionMessageType || "info"}>{actionMessage}</Alert>
+      )}
+      <div className="d-flex justify-content-end mb-3 animate__animated animate__fadeInUp">
         {/* Botón para abrir el modal de creación de producto */}
         <Button variant="success" onClick={handleShowCreateModal}>
           Agregar Nuevo Producto
         </Button>
       </div>
       {products.length === 0 ? (
-        <Alert variant="info" className="text-center">No hay productos registrados. ¡Agrega uno nuevo!</Alert>
+        <Alert variant="info" className="text-center">
+          No hay productos registrados. ¡Agrega uno nuevo!
+        </Alert>
       ) : (
         <Table striped bordered hover responsive>
           <thead>
@@ -175,10 +181,10 @@ const ProductTable: React.FC = () => {
               <tr key={product.id}>
                 <td>{product.id}</td>
                 <td>{product.name}</td>
-                <td>${product.price ? product.price.toFixed(2) : 'N/A'}</td>
+                <td>${product.price ? product.price.toFixed(2) : "N/A"}</td>
                 <td>{product.stock}</td>
-                <td>{product.category || 'N/A'}</td>
-                <td>{product.description || 'N/A'}</td>
+                <td>{product.category || "N/A"}</td>
+                <td>{product.description || "N/A"}</td>
                 <td className="text-center">
                   <Button
                     variant="info"
@@ -211,12 +217,18 @@ const ProductTable: React.FC = () => {
       />
 
       {/* Modal de Confirmación de Eliminación */}
-      <Modal show={showDeleteConfirmModal} onHide={handleCloseDeleteConfirm} centered>
+      <Modal
+        show={showDeleteConfirmModal}
+        onHide={handleCloseDeleteConfirm}
+        centered
+      >
         <Modal.Header closeButton>
           <Modal.Title>Confirmar Eliminación</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          ¿Estás seguro de que quieres eliminar el producto **{productToDelete?.name}** (ID: {productToDelete?.id})? Esta acción no se puede deshacer.
+          ¿Estás seguro de que quieres eliminar el producto **
+          {productToDelete?.name}** (ID: {productToDelete?.id})? Esta acción no
+          se puede deshacer.
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseDeleteConfirm}>

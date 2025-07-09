@@ -139,17 +139,23 @@ const UsersPage: React.FC = () => {
     );
   }
 
-  return (
-    <Container className="my-5">
-      <h2 className="mb-4">Gestión de Usuarios</h2>
-      {actionMessage && <Alert variant={actionMessageType || 'info'}>{actionMessage}</Alert>}
-      <div className="d-flex justify-content-end mb-3">
+ return (
+    <Container className="my-5 animate__animated animate__fadeInUp">
+      <h2 className="mb-4 animate__animated animate__fadeInUp">
+        Gestión de Usuarios
+      </h2>
+      {actionMessage && (
+        <Alert variant={actionMessageType || "info"}>{actionMessage}</Alert>
+      )}
+      <div className="d-flex justify-content-end mb-3 animate__animated animate__fadeInUp">
         <Button variant="success" onClick={handleShowCreateModal}>
           Agregar Nuevo Usuario
         </Button>
       </div>
       {users.length === 0 ? (
-        <Alert variant="info" className="text-center">No hay usuarios registrados. ¡Agrega uno nuevo!</Alert>
+        <Alert variant="info" className="text-center">
+          No hay usuarios registrados. ¡Agrega uno nuevo!
+        </Alert>
       ) : (
         <Table striped bordered hover responsive>
           <thead>
@@ -198,12 +204,18 @@ const UsersPage: React.FC = () => {
       />
 
       {/* Modal de Confirmación de Eliminación */}
-      <Modal show={showDeleteConfirmModal} onHide={handleCloseDeleteConfirm} centered>
+      <Modal
+        show={showDeleteConfirmModal}
+        onHide={handleCloseDeleteConfirm}
+        centered
+      >
         <Modal.Header closeButton>
           <Modal.Title>Confirmar Eliminación</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          ¿Estás seguro de que quieres eliminar al usuario **{userToDelete?.username}** (ID: {userToDelete?.id})? Esta acción no se puede deshacer.
+          ¿Estás seguro de que quieres eliminar al usuario **
+          {userToDelete?.username}** (ID: {userToDelete?.id})? Esta acción no se
+          puede deshacer.
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseDeleteConfirm}>

@@ -116,16 +116,22 @@ const SalesPage: React.FC = () => {
   }
 
   return (
-    <Container className="my-5">
-      <h2 className="mb-4">Historial de Ventas</h2>
-      {actionMessage && <Alert variant={actionMessageType || 'info'}>{actionMessage}</Alert>}
-      <div className="d-flex justify-content-end mb-3">
+    <Container className="my-5 animate__animated animate__fadeInUp">
+      <h2 className="mb-4 animate__animated animate__fadeInUp">
+        Historial de Ventas
+      </h2>
+      {actionMessage && (
+        <Alert variant={actionMessageType || "info"}>{actionMessage}</Alert>
+      )}
+      <div className="d-flex justify-content-end mb-3 animate__animated animate__fadeInUp">
         <Button variant="success" onClick={handleShowSaleModal}>
           Registrar Nueva Venta
         </Button>
       </div>
       {sales.length === 0 ? (
-        <Alert variant="info" className="text-center">No hay ventas registradas. ¡Registra tu primera venta!</Alert>
+        <Alert variant="info" className="text-center">
+          No hay ventas registradas. ¡Registra tu primera venta!
+        </Alert>
       ) : (
         <Table striped bordered hover responsive>
           <thead>
@@ -153,7 +159,7 @@ const SalesPage: React.FC = () => {
                       aria-controls={`sale-details-${sale.id}`}
                       aria-expanded={openSaleId === sale.id}
                     >
-                      {openSaleId === sale.id ? 'Ocultar' : 'Ver'}
+                      {openSaleId === sale.id ? "Ocultar" : "Ver"}
                     </Button>
                   </td>
                 </tr>
@@ -164,9 +170,16 @@ const SalesPage: React.FC = () => {
                         <h6 className="mt-2">Items de la Venta:</h6>
                         <ListGroup variant="flush">
                           {sale.items.map((item, itemIndex) => (
-                            <ListGroup.Item key={itemIndex} className="d-flex justify-content-between align-items-center py-1">
-                              <span>{item.name} (x{item.quantity})</span>
-                              <span>${(item.quantity * item.price).toFixed(2)}</span>
+                            <ListGroup.Item
+                              key={itemIndex}
+                              className="d-flex justify-content-between align-items-center py-1"
+                            >
+                              <span>
+                                {item.name} (x{item.quantity})
+                              </span>
+                              <span>
+                                ${(item.quantity * item.price).toFixed(2)}
+                              </span>
                             </ListGroup.Item>
                           ))}
                         </ListGroup>
