@@ -1,16 +1,22 @@
 // src/components/NavbarComponent.tsx
 import React from 'react';
-import { Navbar, Nav, Container } from 'react-bootstrap'; // Se eliminó NavDropdown ya que no se usa en la base
-import { Link } from 'react-router-dom'; // Se mantiene Link directo
-import type { UserRole } from '../App'; // Importa el tipo UserRole
+import { Navbar, Nav, Container } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext'; // ¡Importa el hook useAuth!
 
-// Definimos los props que este componente esperará
-interface NavbarComponentProps {
-  onLogout: () => void; // Una función para manejar el cierre de sesión
-  userRole: UserRole; // Nuevo prop para el rol del usuario
-}
+// Ya no necesitamos definir los props aquí, el componente obtendrá todo del contexto.
+// interface NavbarComponentProps {
+//   onLogout: () => void;
+//   userRole: UserRole;
+// }
 
-const NavbarComponent: React.FC<NavbarComponentProps> = ({ onLogout, userRole }) => {
+const NavbarComponent: React.FC = () => { // Ya no recibe props
+  // Obtén el usuario y la función logout del contexto de autenticación
+  const { user, logout } = useAuth();
+
+  // El userRole ahora viene directamente de user.role
+  const userRole = user?.role; // Usa el encadenamiento opcional para user
+
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
       <Container>
@@ -23,15 +29,21 @@ const NavbarComponent: React.FC<NavbarComponentProps> = ({ onLogout, userRole })
             <Nav.Link as={Link} to="/clientes">Clientes</Nav.Link>
             <Nav.Link as={Link} to="/ventas">Ventas</Nav.Link>
             <Nav.Link as={Link} to="/proveedores">Proveedores</Nav.Link>
-            
+
             {/* Solo muestra el enlace a Usuarios si el rol es 'admin' */}
             {userRole === 'admin' && (
               <Nav.Link as={Link} to="/usuarios">Usuarios</Nav.Link>
             )}
           </Nav>
           <Nav>
-            {/* Al hacer clic en este Nav.Link, llamamos a la función onLogout */}
-            <Nav.Link onClick={onLogout}>Cerrar Sesión</Nav.Link>
+            {/* Opcional: Muestra el nombre del usuario logueado */}
+            {user && (
+                <Navbar.Text className="me-2">
+                    Hola, {user.username} ({user.role})
+                </Navbar.Text>
+            )}
+            {/* Al hacer clic en este Nav.Link, llamamos a la función logout del contexto */}
+            <Nav.Link onClick={logout}>Cerrar Sesión</Nav.Link>
           </Nav>
         </Navbar.Collapse>
       </Container>

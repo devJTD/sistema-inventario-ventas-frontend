@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Alert, Spinner, Modal } from 'react-bootstrap';
 
+// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
+import api from '../api/axiosConfig';
+
 // Define la interfaz para la estructura de tus usuarios
 interface User {
   id: string;
@@ -16,6 +19,13 @@ interface UserFormProps {
   onHide: () => void; // Función para cerrar el modal
   onSave: () => void; // Función para notificar al padre que se guardó algo y refresque la tabla
   editingUser: User | null; // El usuario a editar, o null si es un nuevo usuario
+}
+
+// --- NUEVA INTERFAZ PARA LA RESPUESTA DE LA API (similar a ProductApiResponse) ---
+interface UserApiResponse {
+  message?: string; // Mensaje opcional del backend
+  // Si tu backend devuelve el usuario creado/actualizado en la respuesta,
+  // puedes añadirlo aquí, por ejemplo: user?: User;
 }
 
 const UserForm: React.FC<UserFormProps> = ({ show, onHide, onSave, editingUser }) => {
@@ -69,38 +79,33 @@ const UserForm: React.FC<UserFormProps> = ({ show, onHide, onSave, editingUser }
     }
 
     try {
-      const method = editingUser ? 'PUT' : 'POST'; // Si hay editingUser, es PUT; si no, es POST
-      const url = editingUser
-        ? `http://localhost:3001/api/users_management/${editingUser.id}`
-        : 'http://localhost:3001/api/users_management';
-
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userDataToSend),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(data.message || `Usuario ${editingUser ? 'actualizado' : 'guardado'} exitosamente.`);
-        setMessageType('success');
-        onSave(); // Notificar al padre que la operación fue exitosa
-
-        // Opcional: Cerrar el modal automáticamente después de un éxito
-        setTimeout(() => {
-          onHide(); // Cerrar el modal
-        }, 1000);
-
+      let response;
+      if (editingUser) {
+        // --- CAMBIO: Usar api.put para actualizar y especificar el tipo de respuesta ---
+        response = await api.put<UserApiResponse>(`/users_management/${editingUser.id}`, userDataToSend);
       } else {
-        setMessage(data.message || `Error al ${editingUser ? 'actualizar' : 'guardar'} el usuario.`);
-        setMessageType('danger');
+        // --- CAMBIO: Usar api.post para crear y especificar el tipo de respuesta ---
+        response = await api.post<UserApiResponse>('/users_management', userDataToSend);
       }
-    } catch (error) {
-      console.error('Error de red o del servidor:', error);
-      setMessage('No se pudo conectar con el servidor. Intenta de nuevo más tarde.');
+
+      // Axios no lanza error para 2xx, así que si llegamos aquí, fue exitoso
+      // Ahora TypeScript sabe que response.data tiene la propiedad 'message'
+      setMessage(response.data.message || `Usuario ${editingUser ? 'actualizado' : 'guardado'} exitosamente.`);
+      setMessageType('success');
+      onSave(); // Notificar al padre que la operación fue exitosa
+
+      setTimeout(() => {
+        onHide(); // Cerrar el modal
+      }, 1000);
+
+    } catch (error: any) { // Mantenemos 'any' para el error general
+      console.error('Error al guardar/actualizar el usuario:', error);
+      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
+      if (error.response && error.response.data && error.response.data.message) {
+        setMessage(error.response.data.message);
+      } else {
+        setMessage('No se pudo conectar con el servidor. Intenta de nuevo más tarde.');
+      }
       setMessageType('danger');
     } finally {
       setLoading(false);

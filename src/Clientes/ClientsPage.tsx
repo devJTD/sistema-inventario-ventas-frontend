@@ -1,7 +1,10 @@
 // src/pages/ClientsPage.tsx
 import React, { useEffect, useState } from 'react';
 import { Container, Table, Button, Spinner, Alert, Modal } from 'react-bootstrap';
-import ClientForm from './ClientForm'; // Importa el ClientForm
+import ClientForm from '../Clientes/ClientForm'; // Asegúrate de que la ruta sea correcta
+
+// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
+import api from '../api/axiosConfig';
 
 // Define la interfaz para la estructura de tus clientes
 interface Client {
@@ -32,15 +35,17 @@ const ClientsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:3001/api/clients'); // URL de tu backend para obtener clientes
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: Client[] = await response.json();
-      setClients(data);
-    } catch (err: any) {
+      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.get' EN LUGAR DE 'fetch'! ---
+      const response = await api.get<Client[]>('/clients'); // Axios ya maneja la URL base y el JSON
+      setClients(response.data); // Los datos están en response.data
+    } catch (err: any) { // Mantenemos 'any' para el error general
       console.error("Error al obtener los clientes:", err);
-      setError("No se pudieron cargar los clientes. Intenta de nuevo más tarde.");
+      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        setError("Tu sesión ha expirado o no tienes permisos para ver clientes.");
+      } else {
+        setError("No se pudieron cargar los clientes. Intenta de nuevo más tarde.");
+      }
     } finally {
       setLoading(false);
     }
@@ -99,23 +104,22 @@ const ClientsPage: React.FC = () => {
     handleCloseDeleteConfirm(); // Cierra el modal de confirmación
 
     try {
-      const response = await fetch(`http://localhost:3001/api/clients/${clientId}`, {
-        method: 'DELETE', // Método DELETE
-      });
+      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.delete' EN LUGAR DE 'fetch'! ---
+      // Axios maneja el 204 No Content como una respuesta exitosa
+      await api.delete(`/clients/${clientId}`);
 
-      if (response.ok) { // Un 204 No Content también es 'ok'
-        setActionMessage('Cliente eliminado exitosamente.');
-        setActionMessageType('success');
-        // Actualizar la lista de clientes en el frontend sin recargar toda la página
-        setClients(prevClients => prevClients.filter(c => c.id !== clientId));
-      } else {
-        const errorData = await response.json(); // Intentar leer el mensaje de error del backend
-        setActionMessage(errorData.message || 'Error al eliminar el cliente.');
-        setActionMessageType('danger');
-      }
-    } catch (err) {
+      setActionMessage('Cliente eliminado exitosamente.');
+      setActionMessageType('success');
+      // Actualizar la lista de clientes en el frontend sin recargar toda la página
+      setClients(prevClients => prevClients.filter(c => c.id !== clientId));
+    } catch (err: any) { // Mantenemos 'any' para el error general
       console.error("Error al eliminar el cliente:", err);
-      setActionMessage('No se pudo conectar con el servidor para eliminar el cliente.');
+      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
+      if (err.response && err.response.data && err.response.data.message) {
+        setActionMessage(err.response.data.message);
+      } else {
+        setActionMessage('No se pudo conectar con el servidor para eliminar el cliente.');
+      }
       setActionMessageType('danger');
     }
   };
@@ -147,12 +151,10 @@ const ClientsPage: React.FC = () => {
       <h2 className="mb-4 animate__animated animate__fadeInUp">
         Gestión de Clientes
       </h2>
-      {/* Muestra mensajes de acciones (crear, editar, eliminar) */}
       {actionMessage && (
         <Alert variant={actionMessageType || "info"}>{actionMessage}</Alert>
       )}
       <div className="d-flex justify-content-end mb-3 animate__animated animate__fadeInUp ">
-        {/* Botón para abrir el modal de creación de cliente */}
         <Button variant="success" onClick={handleShowCreateModal}>
           Agregar Nuevo Cliente
         </Button>
@@ -189,14 +191,14 @@ const ClientsPage: React.FC = () => {
                     variant="info"
                     size="sm"
                     className="me-2"
-                    onClick={() => handleShowEditModal(client)} // Llama a handleShowEditModal
+                    onClick={() => handleShowEditModal(client)}
                   >
                     Editar
                   </Button>
                   <Button
                     variant="danger"
                     size="sm"
-                    onClick={() => handleShowDeleteConfirm(client)} // Llama al modal de confirmación
+                    onClick={() => handleShowDeleteConfirm(client)}
                   >
                     Eliminar
                   </Button>
@@ -207,7 +209,6 @@ const ClientsPage: React.FC = () => {
         </Table>
       )}
 
-      {/* El componente ClientForm ahora se renderiza como un Modal */}
       <ClientForm
         show={showFormModal}
         onHide={handleCloseFormModal}
@@ -215,7 +216,6 @@ const ClientsPage: React.FC = () => {
         editingClient={editingClient}
       />
 
-      {/* Modal de Confirmación de Eliminación */}
       <Modal show={showDeleteConfirmModal} onHide={handleCloseDeleteConfirm} centered>
         <Modal.Header closeButton>
           <Modal.Title>Confirmar Eliminación</Modal.Title>

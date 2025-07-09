@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom';
 // Importa componentes de Recharts
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
+import api from '../api/axiosConfig';
+
 // Define interfaces para los datos que se esperan del backend
 interface Product {
   id: string;
@@ -44,23 +47,22 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api' EN LUGAR DE 'fetch'! ---
+        // Axios ya maneja el response.ok y convierte a JSON automáticamente
         const [productsRes, clientsRes, salesRes] = await Promise.all([
-          fetch('http://localhost:3001/api/products'),
-          fetch('http://localhost:3001/api/clients'),
-          fetch('http://localhost:3001/api/sales')
+          api.get<Product[]>('/products'), // Pasa el tipo de datos esperado
+          api.get<Client[]>('/clients'),
+          api.get<Sale[]>('/sales')
         ]);
 
-        if (!productsRes.ok) throw new Error(`Error al cargar productos: ${productsRes.status}`);
-        if (!clientsRes.ok) throw new Error(`Error al cargar clientes: ${clientsRes.status}`);
-        if (!salesRes.ok) throw new Error(`Error al cargar ventas: ${salesRes.status}`);
-
-        const productsData: Product[] = await productsRes.json();
-        const clientsData: Client[] = await clientsRes.json();
-        const salesData: Sale[] = await salesRes.json();
+        // Los datos ya están en .data de la respuesta de Axios
+        const productsData = productsRes.data;
+        const clientsData = clientsRes.data;
+        const salesData = salesRes.data;
 
         setTotalProducts(productsData.length);
         setTotalClients(clientsData.length);
-        
+
         const salesSum = salesData.reduce((sum, sale) => sum + sale.total, 0);
         setTotalSalesAmount(salesSum);
 
@@ -78,9 +80,15 @@ const DashboardPage: React.FC = () => {
         setProductsByCategory(chartData);
         // --- Fin lógica gráfico ---
 
-      } catch (err: any) {
+      } catch (err: any) { // Mantén 'any' para el error si no quieres tipado estricto de AxiosError aquí
         console.error("Error al cargar datos del dashboard:", err);
-        setError("No se pudieron cargar los datos del resumen. Intenta de nuevo más tarde.");
+        // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
+        // Aquí puedes manejar otros errores o mostrar un mensaje específico
+        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+             setError("Tu sesión ha expirado o no tienes permisos. Por favor, inicia sesión de nuevo.");
+        } else {
+             setError("No se pudieron cargar los datos del resumen. Intenta de nuevo más tarde.");
+        }
       } finally {
         setLoading(false);
       }
