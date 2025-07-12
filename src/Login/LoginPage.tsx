@@ -1,23 +1,14 @@
-// src/pages/LoginPage.tsx
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axiosConfig';
 
-// Define la interfaz para la respuesta exitosa del login de tu backend
-interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    username: string;
-    role: 'admin' | 'vendedor' | 'almacenista'; // Asegúrate de que estos roles coincidan con tu backend
-    // Agrega cualquier otra propiedad que tu objeto 'user' tenga
-  };
-  message?: string; // El mensaje es opcional
-}
+/* Importación de Interfaces */
+import type { LoginResponse } from './interfaces/LoginResponse';
 
 const LoginPage: React.FC = () => {
+  /* Estados del Componente */
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [message, setMessage] = useState<string | null>(null);
@@ -26,6 +17,7 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  /* Lógica de Envío del Formulario */
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setMessage(null);
@@ -38,19 +30,17 @@ const LoginPage: React.FC = () => {
     }
 
     try {
-      // <LoginResponse> le dice a Axios qué forma tendrá response.data
       const response = await api.post<LoginResponse>('/login', { username, password });
 
-      // Ahora TypeScript sabe que response.data contiene 'token' y 'user'
       const { token, user } = response.data;
 
       login(token, user);
 
       setMessage(response.data.message || 'Login exitoso.');
       setMessageType('success');
-      navigate('/dashboard');
+      navigate('/');
 
-    } catch (error: any) { // Mantenemos 'any' aquí para la flexibilidad en el manejo de errores generales
+    } catch (error: any) {
       console.error('Error al iniciar sesión:', error);
       if (error.response && error.response.data && error.response.data.message) {
         setMessage(error.response.data.message);
@@ -61,6 +51,7 @@ const LoginPage: React.FC = () => {
     }
   };
 
+  /* Renderizado del Componente */
   return (
     <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
       <Row>

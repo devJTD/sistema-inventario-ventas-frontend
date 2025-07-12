@@ -1,97 +1,254 @@
-// src/App.tsx
-import React from 'react'; // Asegúrate de importar React
-import { Container } from 'react-bootstrap';
-import { Routes, Route, Navigate } from 'react-router-dom'; // Quitamos useNavigate de aquí, ya no lo necesitamos directamente en App
-import NavbarComponent from './components/NavbarComponent';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Container, Alert, Spinner } from 'react-bootstrap';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
 
-// --- Importaciones de Páginas ---
+// Importaciones de componentes con rutas actualizadas
+import WindowComponent from './components/WindowComponent/WindowComponent';
+import Taskbar from './components/Taskbar/Taskbar';
+import NavbarComponent from './components/NavbarComponent/NavbarComponent';
+
+// Importaciones de páginas con rutas actualizadas
 import LoginPage from './Login/LoginPage';
 import DashboardPage from './Dashboard/DashboardPage';
-import ProductTable from './Productos/ProductTable'; // Asumo que es ProductTable y no ProductsPage
+import ProductTable from './Productos/ProductTable';
 import ClientsPage from './Clientes/ClientsPage';
 import ProvidersPage from './Proveedores/ProvidersPage';
 import SalesPage from './Ventas/SalesPage';
-import UsersPage from './Usuarios/UsersPage'; // Asumo que es UsersPage y no UsersManagementPage
+import UsersPage from './Usuarios/UsersPage';
+
+// Importaciones de contextos y tipos
+import { useAuth } from './contexts/AuthContext';
+import type { UserRole } from './Usuarios/types/UserRole'; 
+import type { WindowInfo } from './components/WindowComponent/interfaces/WindowInfo'; 
+import type { TaskbarWindow } from './components/Taskbar/interfaces/TaskbarWindow'; 
+
+// Importa animate.css para animaciones
 import "animate.css";
 
-// --- NUEVA IMPORTACIÓN DEL CONTEXTO DE AUTENTICACIÓN ---
-import { useAuth } from './contexts/AuthContext';
-
-// Define el tipo para el rol de usuario si no lo tienes ya en AuthContext
-// Si ya lo tienes en AuthContext, puedes eliminar esta línea o importarlo de allí.
-export type UserRole = 'admin' | 'vendedor' | 'almacenista' | null;
-
-// --- Componente PrivateRoute para proteger rutas ---
-// Este componente se asegura de que el usuario esté autenticado antes de mostrar la ruta.
-const PrivateRoute: React.FC<{ children: React.ReactNode; allowedRoles?: UserRole[] }> = ({ children, allowedRoles }) => {
-  const { isAuthenticated, user, loading } = useAuth(); // Obtenemos el estado de autenticación y el usuario del contexto
-
-  if (loading) {
-    // Muestra un indicador de carga mientras se verifica la sesión inicial
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '24px' }}>
-        Cargando sesión...
-      </div>
-    );
-  }
-
-  // Si no está autenticado, redirige al login
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Si está autenticado, pero se requieren roles específicos
-  if (allowedRoles && user && !allowedRoles.includes(user.role as UserRole)) {
-    // Si el usuario no tiene un rol permitido, redirige al dashboard o a una página de "Acceso Denegado"
-    return <Navigate to="/dashboard" replace />; // O a una página de error de permisos
-  }
-
-  // Si todo está bien, renderiza los componentes hijos
-  return <>{children}</>;
+const WindowComponentMap: { [key: string]: React.ComponentType<any> } = {
+  Dashboard: DashboardPage,
+  Productos: ProductTable,
+  Clientes: ClientsPage,
+  Proveedores: ProvidersPage,
+  Ventas: SalesPage,
+  Usuarios: UsersPage,
 };
 
 function App() {
-  // Obtenemos los estados y funciones del contexto de autenticación
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
 
-  // No necesitamos handleLogin ni handleLogout aquí, el contexto los maneja.
-  // Tampoco necesitamos los useState para isAuthenticated y userRole.
+  const [openWindows, setOpenWindows] = useState<WindowInfo[]>([]);
+  const [nextZIndex, setNextZIndex] = useState<number>(1000);
+  const [accessDeniedMessage, setAccessDeniedMessage] = useState<string | null>(null);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Altura del Navbar superior y la Taskbar inferior
+  const NAVBAR_HEIGHT = 56;
+  const TASKBAR_HEIGHT = 44;
+
+  // Dimensiones del área de "escritorio" disponible para las ventanas
+  const DESKTOP_HEIGHT = window.innerHeight - NAVBAR_HEIGHT - TASKBAR_HEIGHT;
+  const DESKTOP_WIDTH = window.innerWidth;
+
+  // Dimensiones por defecto para una nueva ventana
+  const DEFAULT_WINDOW_WIDTH = 1200;
+  const DEFAULT_WINDOW_HEIGHT = 600;
+
+  const openNewWindow = useCallback((
+    componentKey: string,
+    title: string,
+    allowedRoles?: UserRole[],
+    initialProps?: Record<string, any>
+  ) => {
+    // Asegurarse de que user.role sea tratado como UserRole para la comparación
+    if (allowedRoles && user && !allowedRoles.includes(user.role as UserRole)) {
+      setAccessDeniedMessage(`No tienes permiso para acceder a "${title}".`);
+      setTimeout(() => setAccessDeniedMessage(null), 3000);
+      return;
+    }
+
+    const ComponentToOpen = WindowComponentMap[componentKey];
+    if (!ComponentToOpen) {
+      console.error(`Componente con clave "${componentKey}" no encontrado en WindowComponentMap.`);
+      return;
+    }
+
+    const existingWindow = openWindows.find(win => win.componentKey === componentKey);
+    if (existingWindow) {
+      setOpenWindows(prevWindows => {
+        const updatedWindows = prevWindows.map(win =>
+          win.id === existingWindow.id
+            ? { ...win, minimized: false, zIndex: nextZIndex }
+            : { ...win, zIndex: win.zIndex < nextZIndex ? win.zIndex : nextZIndex - 1 }
+        );
+        setNextZIndex(prev => prev + 1);
+        return updatedWindows.sort((a, b) => a.zIndex - b.zIndex);
+      });
+      return;
+    }
+
+    // Cálculo de la posición inicial para centrar la ventana en el área del escritorio
+    const initialX = ((DESKTOP_WIDTH / 2) - (DEFAULT_WINDOW_WIDTH / 2)) - 60;
+    const initialY = ((DESKTOP_HEIGHT / 2) - (DEFAULT_WINDOW_HEIGHT / 2)) -30;
+
+    // Pequeño offset aleatorio para evitar que las ventanas se apilen perfectamente
+    const offsetX = (Math.random() - 0.5) * 60; // Rango +/- 30px
+
+    setNextZIndex(prev => prev + 1);
+    const newWindow: WindowInfo = {
+      id: `${componentKey}-${uuidv4()}`,
+      title,
+      componentKey,
+      // La posición final debe estar dentro de los límites del desktop-area
+      x: Math.max(0, Math.min(initialX + offsetX, DESKTOP_WIDTH - DEFAULT_WINDOW_WIDTH)),
+      y: Math.max(0, Math.min(initialY, DESKTOP_HEIGHT - DEFAULT_WINDOW_HEIGHT)),
+      width: DEFAULT_WINDOW_WIDTH,
+      height: DEFAULT_WINDOW_HEIGHT,
+      minimized: false,
+      zIndex: nextZIndex,
+      props: initialProps,
+    };
+
+    setOpenWindows(prevWindows => [...prevWindows, newWindow].sort((a, b) => a.zIndex - b.zIndex));
+  }, [openWindows, nextZIndex, DESKTOP_HEIGHT, DESKTOP_WIDTH, user]);
+
+  const closeWindow = useCallback((id: string) => {
+    setOpenWindows(prevWindows => prevWindows.filter(win => win.id !== id));
+  }, []);
+
+  const minimizeWindow = useCallback((id: string) => {
+    setOpenWindows(prevWindows => prevWindows.map(win =>
+      win.id === id ? { ...win, minimized: !win.minimized, zIndex: nextZIndex } : win
+    ).sort((a, b) => a.zIndex - b.zIndex));
+    setNextZIndex(prev => prev + 1);
+  }, [nextZIndex]);
+
+  const focusWindow = useCallback((id: string) => {
+    setOpenWindows(prevWindows => {
+      const focusedWindow = prevWindows.find(win => win.id === id);
+      if (!focusedWindow) {
+        return prevWindows;
+      }
+
+      const currentMaxZIndex = prevWindows.reduce((max, win) => Math.max(max, win.zIndex), 0);
+      const isCurrentlyFocusedAndOpen = focusedWindow.zIndex === currentMaxZIndex && !focusedWindow.minimized;
+
+      if (isCurrentlyFocusedAndOpen) {
+        return prevWindows.map(win =>
+          win.id === id ? { ...win, minimized: true, zIndex: nextZIndex } : win
+        ).sort((a, b) => a.zIndex - b.zIndex);
+      } else {
+        setNextZIndex(prev => prev + 1);
+        return prevWindows.map(win =>
+          win.id === id
+            ? { ...win, zIndex: nextZIndex, minimized: false }
+            : win
+        ).sort((a, b) => a.zIndex - b.zIndex);
+      }
+    });
+  }, [nextZIndex]);
+
+  const updateWindowPosition = useCallback((id: string, newX: number, newY: number) => {
+    setOpenWindows(prevWindows => prevWindows.map(win =>
+      win.id === id ? { ...win, x: newX, y: newY } : win
+    ));
+  }, []);
+
+  const updateWindowSize = useCallback((id: string, newWidth: number, newHeight: number) => {
+    setOpenWindows(prevWindows => prevWindows.map(win =>
+      win.id === id ? { ...win, width: newWidth, height: newHeight } : win
+    ));
+  }, []);
+
+  // useEffect para manejar la redirección post-recarga
+  useEffect(() => {
+    if (!loading && isAuthenticated && location.pathname === '/login') {
+      navigate('/', { replace: true });
+    }
+  }, [loading, isAuthenticated, location.pathname, navigate]);
+
+  if (loading) {
+    return (
+      <Container fluid className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Cargando...</span>
+        </Spinner>
+      </Container>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
   return (
-    <Container fluid className="p-0">
-       {/* ANTES: {isAuthenticated && <NavbarComponent onLogout={logout} userRole={user?.role as UserRole} />} */}
-      {/* AHORA: Ya no necesita props, las toma directamente del contexto */}
-      {isAuthenticated && <NavbarComponent />}
+    <Container fluid className="p-0 d-flex flex-column vh-100">
+      <NavbarComponent openNewWindow={openNewWindow} userRole={user?.role as UserRole} />
 
-      <Routes>
-        {/* La ruta de Login ya no necesita onLogin, ya que el LoginPage usará el contexto directamente */}
-        <Route
-          path="/login"
-          element={<LoginPage />}
-        />
+      <div
+        id="desktop-area"
+        style={{
+          position: 'relative',
+          flexGrow: 1,
+          overflow: 'hidden',
+          backgroundColor: '#f0f2f5',
+          marginTop: `${NAVBAR_HEIGHT}px`,
+          marginBottom: `${TASKBAR_HEIGHT}px`,
+          height: DESKTOP_HEIGHT,
+          width: '100vw',
+        }}
+      >
+        {accessDeniedMessage && (
+          <Alert variant="danger" className="position-absolute top-0 start-50 translate-middle-x mt-3" style={{ zIndex: 9999 }}>
+            {accessDeniedMessage}
+          </Alert>
+        )}
 
-        {/* Ruta raíz: redirige al dashboard si está autenticado, de lo contrario al login */}
-        <Route
-          path="/"
-          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />}
-        />
+        {openWindows.map(win => {
+          const ComponentToRender = WindowComponentMap[win.componentKey];
+          if (!ComponentToRender) {
+            console.error(`Componente para la ventana con clave "${win.componentKey}" no encontrado.`);
+            return null;
+          }
+          return (
+            <WindowComponent
+              key={win.id}
+              id={win.id}
+              title={win.title}
+              x={win.x}
+              y={win.y}
+              width={win.width}
+              height={win.height}
+              minimized={win.minimized}
+              zIndex={win.zIndex}
+              onClose={closeWindow}
+              onMinimize={minimizeWindow}
+              onFocus={focusWindow}
+              onDragEnd={updateWindowPosition}
+              onResizeEnd={updateWindowSize}
+            >
+              <ComponentToRender {...win.props} />
+            </WindowComponent>
+          );
+        })}
+      </div>
 
-        {/* Rutas Protegidas usando PrivateRoute */}
-        <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-        <Route path="/productos" element={<PrivateRoute><ProductTable /></PrivateRoute>} />
-        <Route path="/clientes" element={<PrivateRoute><ClientsPage /></PrivateRoute>} />
-        <Route path="/proveedores" element={<PrivateRoute><ProvidersPage /></PrivateRoute>} />
-        <Route path="/ventas" element={<PrivateRoute><SalesPage /></PrivateRoute>} />
-        
-        {/* Ruta de Usuarios: Protegida y solo accesible para 'admin' */}
-        <Route
-          path="/usuarios"
-          element={<PrivateRoute allowedRoles={['admin']}><UsersPage /></PrivateRoute>}
-        />
-
-        {/* Ruta de fallback para cualquier otra URL no definida */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
+      <Taskbar
+        openWindows={openWindows.map((win: WindowInfo): TaskbarWindow => ({
+          id: win.id,
+          title: win.title,
+          minimized: win.minimized,
+        }))}
+        onWindowClick={focusWindow}
+      />
     </Container>
   );
 }

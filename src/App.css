@@ -1,0 +1,82 @@
+/* Importaciones */
+@import 'react-resizable/css/styles.css';
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css");
+
+/* Estilos de Contenedor de Ventana */
+.window-container {
+  background-color: white;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  border-radius: 8px;
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  transform-origin: center center;
+}
+
+/* Animación de Apertura de Ventana */
+.window-container.window-open-animation {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Estilos de Encabezado de Ventana */
+.window-header {
+  cursor: grab;
+  user-select: none;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #dee2e6;
+  touch-action: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #007bff;
+  color: white;
+}
+
+.window-header h5 {
+  margin-bottom: 0;
+}
+
+/* Estilos de Contenido del Cuerpo de la Ventana */
+.window-body-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+/* Estilos de Botones de Control de Ventana */
+.window-control-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  padding: 0;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.window-control-button:hover {
+  filter: brightness(0.8);
+}
+
+/* Colores Específicos de Botones de Control */
+.window-control-button.minimize {
+  background-color: #ffbd2e;
+  margin-left: 5px;
+}
+
+.window-control-button.close {
+  background-color: #ff5f56;
+  margin-left: 8px;
+}

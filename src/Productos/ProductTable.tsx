@@ -1,47 +1,46 @@
-// src/components/ProductTable.tsx
 import React, { useEffect, useState } from 'react';
-import { Container, Table, Button, Spinner, Alert, Modal } from 'react-bootstrap';
-import ProductForm from './ProductForm';
-
-// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
+import { Container, Table, Button, Spinner, Alert, Form, Row, Col, Modal } from 'react-bootstrap';
 import api from '../api/axiosConfig';
 
-// Define la interfaz para la estructura de tus productos
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  stock: number;
-  category: string;
-  description: string;
-}
+/* Importaciones de Interfaces */
+import type { Product } from './interfaces/Product';
+import type { ProductApiResponse } from './interfaces/ProductApiResponse';
 
 const ProductTable: React.FC = () => {
+  /* Estados para la Tabla de Productos */
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionMessageType, setActionMessageType] = useState<'success' | 'danger' | null>(null);
 
-  // Estados para el modal de Crear/Editar
-  const [showFormModal, setShowFormModal] = useState<boolean>(false);
+  /* Estados para el Formulario de Crear/Editar */
+  const [showProductForm, setShowProductForm] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // Estados para el modal de Confirmación de Eliminación
+  /* Estados del Formulario */
+  const [name, setName] = useState<string>('');
+  const [price, setPrice] = useState<string>('');
+  const [stock, setStock] = useState<string>('');
+  const [category, setCategory] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
+  const [formMessage, setFormMessage] = useState<string | null>(null);
+  const [formMessageType, setFormMessageType] = useState<'success' | 'danger' | null>(null);
+  const [formLoading, setFormLoading] = useState<boolean>(false);
+
+  /* Estados para el Modal de Confirmación de Eliminación */
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  // Función para cargar los productos del backend
+  /* Funciones de Carga de Datos */
   const fetchProducts = async () => {
     setLoading(true);
     setError(null);
     try {
-      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.get' EN LUGAR DE 'fetch'! ---
-      const response = await api.get<Product[]>('/products'); // Axios ya maneja la URL base y el JSON
-      setProducts(response.data); // Los datos están en response.data
+      const response = await api.get<Product[]>('/products');
+      setProducts(response.data);
     } catch (err: any) {
       console.error("Error al obtener los productos:", err);
-      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
         setError("Tu sesión ha expirado o no tienes permisos para ver productos.");
       } else {
@@ -52,39 +51,118 @@ const ProductTable: React.FC = () => {
     }
   };
 
-  // Carga los productos cuando el componente se monta
+  /* Efectos de Carga Inicial y Formulario */
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  // Funciones para abrir y cerrar el modal de Crear/Editar
-  const handleShowCreateModal = () => {
+  useEffect(() => {
+    if (showProductForm) {
+      if (editingProduct) {
+        setName(editingProduct.name);
+        setPrice(editingProduct.price.toString());
+        setStock(editingProduct.stock.toString());
+        setCategory(editingProduct.category);
+        setDescription(editingProduct.description);
+      } else {
+        setName('');
+        setPrice('');
+        setStock('');
+        setCategory('');
+        setDescription('');
+      }
+      setFormMessage(null);
+      setFormMessageType(null);
+      setFormLoading(false);
+    }
+  }, [editingProduct, showProductForm]);
+
+  /* Funciones de la Tabla de Productos */
+  const handleShowCreateForm = () => {
     setEditingProduct(null);
-    setShowFormModal(true);
+    setShowProductForm(true);
     setActionMessage(null);
     setActionMessageType(null);
   };
 
-  const handleShowEditModal = (product: Product) => {
+  const handleShowEditForm = (product: Product) => {
     setEditingProduct(product);
-    setShowFormModal(true);
+    setShowProductForm(true);
     setActionMessage(null);
     setActionMessageType(null);
   };
 
-  const handleCloseFormModal = () => {
-    setShowFormModal(false);
+  const handleCancelForm = () => {
+    setShowProductForm(false);
     setEditingProduct(null);
   };
 
-  // Función que se llama cuando el formulario del modal guarda (crea o edita) un producto
   const handleProductSaved = () => {
-    fetchProducts(); // Recargar la lista de productos para ver los cambios
+    fetchProducts();
+    setShowProductForm(false);
+    setEditingProduct(null);
     setActionMessage('Operación realizada con éxito.');
     setActionMessageType('success');
   };
 
-  // --- Lógica para el modal de confirmación de eliminación ---
+  /* Lógica del Formulario de Producto */
+  const handleSubmitForm = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setFormMessage(null);
+    setFormMessageType(null);
+    setFormLoading(true);
+
+    if (!name || !price || !stock || !category || !description) {
+      setFormMessage('Todos los campos son obligatorios.');
+      setFormMessageType('danger');
+      setFormLoading(false);
+      return;
+    }
+
+    const productPrice = parseFloat(price);
+    const productStock = parseInt(stock, 10);
+
+    if (isNaN(productPrice) || isNaN(productStock) || productPrice <= 0 || productStock < 0) {
+      setFormMessage('El precio debe ser un número positivo y el stock un número no negativo.');
+      setFormMessageType('danger');
+      setFormLoading(false);
+      return;
+    }
+
+    const productDataToSend = {
+      name,
+      price: productPrice,
+      stock: productStock,
+      category,
+      description,
+    };
+
+    try {
+      let response;
+      if (editingProduct) {
+        response = await api.put<ProductApiResponse>(`/products/${editingProduct.id}`, productDataToSend);
+      } else {
+        response = await api.post<ProductApiResponse>('/products', productDataToSend);
+      }
+
+      setFormMessage(response.data.message || `Producto ${editingProduct ? 'actualizado' : 'guardado'} exitosamente.`);
+      setFormMessageType('success');
+      handleProductSaved();
+
+    } catch (error: any) {
+      console.error('Error al guardar/actualizar el producto:', error);
+      if (error.response && error.response.data && error.response.data.message) {
+        setFormMessage(error.response.data.message);
+      } else {
+        setFormMessage('No se pudo conectar con el servidor. Intenta de nuevo más tarde.');
+      }
+      setFormMessageType('danger');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  /* Lógica del Modal de Confirmación de Eliminación */
   const handleShowDeleteConfirm = (product: Product) => {
     setProductToDelete(product);
     setShowDeleteConfirmModal(true);
@@ -104,17 +182,13 @@ const ProductTable: React.FC = () => {
     handleCloseDeleteConfirm();
 
     try {
-      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.delete' EN LUGAR DE 'fetch'! ---
-      // Axios maneja el 204 No Content como una respuesta exitosa
       await api.delete(`/products/${productId}`);
 
       setActionMessage('Producto eliminado exitosamente.');
       setActionMessageType('success');
-      // Actualizar la lista de productos en el frontend sin recargar toda la página
       setProducts(prevProducts => prevProducts.filter(p => p.id !== productId));
     } catch (err: any) {
       console.error("Error al eliminar el producto:", err);
-      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
       if (err.response && err.response.data && err.response.data.message) {
         setActionMessage(err.response.data.message);
       } else {
@@ -123,8 +197,8 @@ const ProductTable: React.FC = () => {
       setActionMessageType('danger');
     }
   };
-  // --- Fin lógica modal de confirmación de eliminación ---
 
+  /* Renderizado Condicional de la Página */
   if (loading) {
     return (
       <Container className="my-5 text-center">
@@ -145,6 +219,111 @@ const ProductTable: React.FC = () => {
     );
   }
 
+  /* Formulario de Producto */
+  if (showProductForm) {
+    return (
+      <Container className="my-5 animate__animated animate__fadeInUp">
+        <h2 className="mb-4">{editingProduct ? 'Editar Producto' : 'Agregar Nuevo Producto'}</h2>
+        {formMessage && <Alert variant={formMessageType || 'info'}>{formMessage}</Alert>}
+
+        <Form onSubmit={handleSubmitForm}>
+          <Form.Group className="mb-3" controlId="formProductName">
+            <Form.Label>Nombre del Producto</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Ingrese el nombre del producto"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              disabled={formLoading}
+            />
+          </Form.Group>
+
+          <Row className="mb-3">
+            <Form.Group as={Col} controlId="formProductPrice">
+              <Form.Label>Precio</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                placeholder="Ingrese el precio"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                required
+                disabled={formLoading}
+              />
+            </Form.Group>
+
+            <Form.Group as={Col} controlId="formProductStock">
+              <Form.Label>Stock Actual</Form.Label>
+              <Form.Control
+                type="number"
+                placeholder="Ingrese la cantidad en stock"
+                value={stock}
+                onChange={(e) => setStock(e.target.value)}
+                required
+                disabled={formLoading}
+              />
+            </Form.Group>
+          </Row>
+
+          <Form.Group className="mb-3" controlId="formProductCategory">
+            <Form.Label>Categoría</Form.Label>
+            <Form.Select
+              aria-label="Seleccione una categoría"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              required
+              disabled={formLoading}
+            >
+              <option value="">Seleccione una categoría</option>
+              <option value="Electrónica">Electrónica</option>
+              <option value="Ropa">Ropa</option>
+              <option value="Alimentos">Alimentos</option>
+              <option value="Hogar">Hogar</option>
+            </Form.Select>
+          </Form.Group>
+
+          <Form.Group className="mb-3" controlId="formProductDescription">
+            <Form.Label>Descripción</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              placeholder="Ingrese una descripción del producto"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+              disabled={formLoading}
+            />
+          </Form.Group>
+
+          <div className="d-flex justify-content-end">
+            <Button variant="secondary" onClick={handleCancelForm} className="me-2" disabled={formLoading}>
+              Cancelar
+            </Button>
+            <Button variant="success" type="submit" disabled={formLoading}>
+              {formLoading ? (
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                    className="me-1"
+                  />
+                  {editingProduct ? 'Actualizando...' : 'Guardando...'}
+                </>
+              ) : (
+                editingProduct ? 'Actualizar Producto' : 'Guardar Producto'
+              )}
+            </Button>
+          </div>
+        </Form>
+      </Container>
+    );
+  }
+
+  /* Tabla de Gestión de Productos */
   return (
     <Container className="my-5 animate__animated animate__fadeInUp">
       <h2 className="mb-4 animate__animated animate__fadeInUp">
@@ -154,7 +333,7 @@ const ProductTable: React.FC = () => {
         <Alert variant={actionMessageType || "info"}>{actionMessage}</Alert>
       )}
       <div className="d-flex justify-content-end mb-3 animate__animated animate__fadeInUp">
-        <Button variant="success" onClick={handleShowCreateModal}>
+        <Button variant="success" onClick={handleShowCreateForm}>
           Agregar Nuevo Producto
         </Button>
       </div>
@@ -189,7 +368,7 @@ const ProductTable: React.FC = () => {
                     variant="info"
                     size="sm"
                     className="me-2"
-                    onClick={() => handleShowEditModal(product)}
+                    onClick={() => handleShowEditForm(product)}
                   >
                     Editar
                   </Button>
@@ -207,13 +386,7 @@ const ProductTable: React.FC = () => {
         </Table>
       )}
 
-      <ProductForm
-        show={showFormModal}
-        onHide={handleCloseFormModal}
-        onSave={handleProductSaved}
-        editingProduct={editingProduct}
-      />
-
+      /* Modal de Confirmación de Eliminación */
       <Modal
         show={showDeleteConfirmModal}
         onHide={handleCloseDeleteConfirm}

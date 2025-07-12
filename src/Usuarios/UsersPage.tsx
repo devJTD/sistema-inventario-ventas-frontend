@@ -1,45 +1,44 @@
-// src/pages/UsersPage.tsx
 import React, { useEffect, useState } from 'react';
-import { Container, Table, Button, Spinner, Alert, Modal } from 'react-bootstrap';
-import UserForm from '../Usuarios/UserForm'; // Ajusta la ruta si es necesario
-
-// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
+import { Container, Table, Button, Spinner, Alert, Modal, Form } from 'react-bootstrap';
 import api from '../api/axiosConfig';
 
-// Define la interfaz para la estructura de tus usuarios (sin contraseña para la tabla)
-interface User {
-  id: string;
-  username: string;
-  role: string;
-}
+/* Importaciones de Interfaces */
+import type { User } from './interfaces/User';
+import type { UserApiResponse } from './interfaces/UserApiResponse';
 
 const UsersPage: React.FC = () => {
+  /* Estados para la Tabla de Usuarios */
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionMessageType, setActionMessageType] = useState<'success' | 'danger' | null>(null);
 
-  // Estados para el modal de Crear/Editar
-  const [showFormModal, setShowFormModal] = useState<boolean>(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null); // Usuario a editar, o null para crear
+  /* Estados para el Formulario de Crear/Editar */
+  const [showUserForm, setShowUserForm] = useState<boolean>(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  // Estados para el modal de Confirmación de Eliminación
+  /* Estados del Formulario */
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [role, setRole] = useState<string>('');
+  const [formMessage, setFormMessage] = useState<string | null>(null);
+  const [formMessageType, setFormMessageType] = useState<'success' | 'danger' | null>(null);
+  const [formLoading, setFormLoading] = useState<boolean>(false);
+
+  /* Estados para el Modal de Confirmación de Eliminación */
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null); // Usuario que se va a eliminar
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
-  // Función para cargar los usuarios del backend
+  /* Funciones de Carga de Datos */
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
-      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.get' EN LUGAR DE 'fetch'! ---
-      // Nota: La API para users_management filtra la contraseña en GET
-      const response = await api.get<User[]>('/users_management'); // Axios ya maneja la URL base y el JSON
-      setUsers(response.data); // Los datos están en response.data
+      const response = await api.get<User[]>('/users_management');
+      setUsers(response.data);
     } catch (err: any) {
       console.error("Error al obtener los usuarios:", err);
-      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
         setError("Tu sesión ha expirado o no tienes permisos para ver usuarios.");
       } else {
@@ -50,43 +49,108 @@ const UsersPage: React.FC = () => {
     }
   };
 
-  // Carga los usuarios cuando el componente se monta
+  /* Efectos de Carga Inicial y Formulario */
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  // Funciones para abrir y cerrar el modal de Crear/Editar
-  const handleShowCreateModal = () => {
-    setEditingUser(null); // Asegurarse de que no haya usuario en edición (modo crear)
-    setShowFormModal(true);
-    setActionMessage(null); // Limpiar mensajes al abrir modal
+  useEffect(() => {
+    if (showUserForm) {
+      if (editingUser) {
+        setUsername(editingUser.username);
+        setRole(editingUser.role);
+        setPassword('');
+      } else {
+        setUsername('');
+        setPassword('');
+        setRole('');
+      }
+      setFormMessage(null);
+      setFormMessageType(null);
+      setFormLoading(false);
+    }
+  }, [editingUser, showUserForm]);
+
+  /* Funciones de la Tabla de Usuarios */
+  const handleShowCreateForm = () => {
+    setEditingUser(null);
+    setShowUserForm(true);
+    setActionMessage(null);
     setActionMessageType(null);
   };
 
-  const handleShowEditModal = (user: User) => {
-    setEditingUser(user); // Establecer el usuario a editar
-    setShowFormModal(true);
-    setActionMessage(null); // Limpiar mensajes al abrir modal
+  const handleShowEditForm = (user: User) => {
+    setEditingUser(user);
+    setShowUserForm(true);
+    setActionMessage(null);
     setActionMessageType(null);
   };
 
-  const handleCloseFormModal = () => {
-    setShowFormModal(false);
-    setEditingUser(null); // Limpiar el usuario en edición al cerrar el modal
+  const handleCancelForm = () => {
+    setShowUserForm(false);
+    setEditingUser(null);
   };
 
-  // Función que se llama cuando el formulario del modal guarda (crea o edita) un usuario
   const handleUserSaved = () => {
-    fetchUsers(); // Recargar la lista de usuarios para ver los cambios
+    fetchUsers();
+    setShowUserForm(false);
+    setEditingUser(null);
     setActionMessage('Operación realizada con éxito.');
     setActionMessageType('success');
   };
 
-  // --- Lógica para el modal de confirmación de eliminación ---
+  /* Lógica del Formulario de Usuario */
+  const handleSubmitForm = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setFormMessage(null);
+    setFormMessageType(null);
+    setFormLoading(true);
+
+    if (!username || !role || (!editingUser && !password)) {
+      setFormMessage('Usuario, contraseña (al crear) y rol son obligatorios.');
+      setFormMessageType('danger');
+      setFormLoading(false);
+      return;
+    }
+
+    const userDataToSend: Partial<User> = {
+      username,
+      role,
+    };
+    if (password) {
+      userDataToSend.password = password;
+    }
+
+    try {
+      let response;
+      if (editingUser) {
+        response = await api.put<UserApiResponse>(`/users_management/${editingUser.id}`, userDataToSend);
+      } else {
+        response = await api.post<UserApiResponse>('/users_management', userDataToSend);
+      }
+
+      setFormMessage(response.data.message || `Usuario ${editingUser ? 'actualizado' : 'guardado'} exitosamente.`);
+      setFormMessageType('success');
+      handleUserSaved();
+
+    } catch (error: any) {
+      console.error('Error al guardar/actualizar el usuario:', error);
+      if (error.response && error.response.data && error.response.data.message) {
+        setFormMessage(error.response.data.message);
+      } else {
+        setFormMessage('No se pudo conectar con el servidor. Intenta de nuevo más tarde.');
+      }
+      setFormMessageType('danger');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  /* Lógica del Modal de Confirmación de Eliminación */
   const handleShowDeleteConfirm = (user: User) => {
-    setUserToDelete(user); // Guarda el usuario a eliminar
-    setShowDeleteConfirmModal(true); // Muestra el modal de confirmación
-    setActionMessage(null); // Limpiar mensajes previos
+    setUserToDelete(user);
+    setShowDeleteConfirmModal(true);
+    setActionMessage(null);
     setActionMessageType(null);
   };
 
@@ -96,14 +160,12 @@ const UsersPage: React.FC = () => {
   };
 
   const confirmDelete = async () => {
-    if (!userToDelete) return; // Si no hay usuario para eliminar, salir
+    if (!userToDelete) return;
 
     const userId = userToDelete.id;
-    handleCloseDeleteConfirm(); // Cierra el modal de confirmación
+    handleCloseDeleteConfirm();
 
     try {
-      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.delete' EN LUGAR DE 'fetch'! ---
-      // Axios maneja el 204 No Content como una respuesta exitosa
       await api.delete(`/users_management/${userId}`);
 
       setActionMessage('Usuario eliminado exitosamente.');
@@ -111,7 +173,6 @@ const UsersPage: React.FC = () => {
       setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
     } catch (err: any) {
       console.error("Error al eliminar el usuario:", err);
-      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
       if (err.response && err.response.data && err.response.data.message) {
         setActionMessage(err.response.data.message);
       } else {
@@ -120,9 +181,8 @@ const UsersPage: React.FC = () => {
       setActionMessageType('danger');
     }
   };
-  // --- Fin lógica modal de confirmación de eliminación ---
 
-
+  /* Renderizado Condicional de la Página */
   if (loading) {
     return (
       <Container className="my-5 text-center">
@@ -143,6 +203,82 @@ const UsersPage: React.FC = () => {
     );
   }
 
+  /* Formulario de Usuario */
+  if (showUserForm) {
+    return (
+      <Container className="my-5 animate__animated animate__fadeInUp">
+        <h2 className="mb-4">{editingUser ? 'Editar Usuario' : 'Agregar Nuevo Usuario'}</h2>
+        {formMessage && <Alert variant={formMessageType || 'info'}>{formMessage}</Alert>}
+
+        <Form onSubmit={handleSubmitForm}>
+          <Form.Group className="mb-3" controlId="formUsername">
+            <Form.Label>Nombre de Usuario</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Ingrese el nombre de usuario"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              disabled={formLoading}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3" controlId="formPassword">
+            <Form.Label>Contraseña {editingUser && "(dejar en blanco para no cambiar)"}</Form.Label>
+            <Form.Control
+              type="password"
+              placeholder={editingUser ? "Dejar en blanco para no cambiar" : "Ingrese la contraseña"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required={!editingUser}
+              disabled={formLoading}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3" controlId="formRole">
+            <Form.Label>Rol</Form.Label>
+            <Form.Select
+              aria-label="Seleccione un rol"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              required
+              disabled={formLoading}
+            >
+              <option value="">Seleccione un rol</option>
+              <option value="admin">Administrador</option>
+              <option value="vendedor">Vendedor</option>
+              <option value="almacenista">Almacenista</option>
+            </Form.Select>
+          </Form.Group>
+
+          <div className="d-flex justify-content-end">
+            <Button variant="secondary" onClick={handleCancelForm} className="me-2" disabled={formLoading}>
+              Cancelar
+            </Button>
+            <Button variant="success" type="submit" disabled={formLoading}>
+              {formLoading ? (
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                    className="me-1"
+                  />
+                  {editingUser ? 'Actualizando...' : 'Guardando...'}
+                </>
+              ) : (
+                editingUser ? 'Actualizar Usuario' : 'Guardar Usuario'
+              )}
+            </Button>
+          </div>
+        </Form>
+      </Container>
+    );
+  }
+
+  /* Tabla de Gestión de Usuarios */
   return (
     <Container className="my-5 animate__animated animate__fadeInUp">
       <h2 className="mb-4 animate__animated animate__fadeInUp">
@@ -152,7 +288,7 @@ const UsersPage: React.FC = () => {
         <Alert variant={actionMessageType || "info"}>{actionMessage}</Alert>
       )}
       <div className="d-flex justify-content-end mb-3 animate__animated animate__fadeInUp">
-        <Button variant="success" onClick={handleShowCreateModal}>
+        <Button variant="success" onClick={handleShowCreateForm}>
           Agregar Nuevo Usuario
         </Button>
       </div>
@@ -181,7 +317,7 @@ const UsersPage: React.FC = () => {
                     variant="info"
                     size="sm"
                     className="me-2"
-                    onClick={() => handleShowEditModal(user)}
+                    onClick={() => handleShowEditForm(user)}
                   >
                     Editar
                   </Button>
@@ -199,15 +335,7 @@ const UsersPage: React.FC = () => {
         </Table>
       )}
 
-      {/* El componente UserForm ahora se renderiza como un Modal */}
-      <UserForm
-        show={showFormModal}
-        onHide={handleCloseFormModal}
-        onSave={handleUserSaved}
-        editingUser={editingUser}
-      />
-
-      {/* Modal de Confirmación de Eliminación */}
+      /* Modal de Confirmación de Eliminación */
       <Modal
         show={showDeleteConfirmModal}
         onHide={handleCloseDeleteConfirm}

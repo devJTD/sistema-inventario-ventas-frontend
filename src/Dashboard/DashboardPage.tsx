@@ -1,61 +1,40 @@
-// src/pages/DashboardPage.tsx
 import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
-// Importa componentes de Recharts
+
+/* Importaciones de Recharts */
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
 import api from '../api/axiosConfig';
 
-// Define interfaces para los datos que se esperan del backend
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  stock: number;
-  category: string; // Asegúrate de que la categoría esté presente
-}
+/* Importaciones de Interfaces */
+import type { Product } from './interfaces/Product';
+import type { Client } from './interfaces/Client';
+import type { Sale } from './interfaces/Sale';
 
-interface Client {
-  id: string;
-  name: string;
-}
-
-interface Sale {
-  id: string;
-  total: number;
-}
-
-// Colores para las secciones del gráfico de pastel
+/* Constantes de Estilo */
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 const DashboardPage: React.FC = () => {
-  const navigate = useNavigate();
-
-  // Estados para almacenar los datos resumidos
+  /* Estados de Datos del Dashboard */
   const [totalProducts, setTotalProducts] = useState<number | null>(null);
   const [totalClients, setTotalClients] = useState<number | null>(null);
   const [totalSalesAmount, setTotalSalesAmount] = useState<number | null>(null);
-  // Nuevo estado para los datos del gráfico de pastel
   const [productsByCategory, setProductsByCategory] = useState<{ name: string; value: number }[]>([]);
 
-  // Estados para manejo de UI (carga y errores)
+  /* Estados de UI y Errores */
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  /* Efecto para Carga de Datos Inicial */
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api' EN LUGAR DE 'fetch'! ---
-        // Axios ya maneja el response.ok y convierte a JSON automáticamente
         const [productsRes, clientsRes, salesRes] = await Promise.all([
-          api.get<Product[]>('/products'), // Pasa el tipo de datos esperado
+          api.get<Product[]>('/products'),
           api.get<Client[]>('/clients'),
           api.get<Sale[]>('/sales')
         ]);
 
-        // Los datos ya están en .data de la respuesta de Axios
         const productsData = productsRes.data;
         const clientsData = clientsRes.data;
         const salesData = salesRes.data;
@@ -66,10 +45,10 @@ const DashboardPage: React.FC = () => {
         const salesSum = salesData.reduce((sum, sale) => sum + sale.total, 0);
         setTotalSalesAmount(salesSum);
 
-        // --- Lógica para el gráfico de pastel: Contar productos por categoría ---
+        /* Lógica para Contar Productos por Categoría */
         const categoryCounts: { [key: string]: number } = {};
         productsData.forEach(product => {
-          const category = product.category || 'Sin Categoría'; // Manejar productos sin categoría
+          const category = product.category || 'Sin Categoría';
           categoryCounts[category] = (categoryCounts[category] || 0) + 1;
         });
 
@@ -78,16 +57,13 @@ const DashboardPage: React.FC = () => {
           value: categoryCounts[category]
         }));
         setProductsByCategory(chartData);
-        // --- Fin lógica gráfico ---
 
-      } catch (err: any) { // Mantén 'any' para el error si no quieres tipado estricto de AxiosError aquí
+      } catch (err: any) {
         console.error("Error al cargar datos del dashboard:", err);
-        // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
-        // Aquí puedes manejar otros errores o mostrar un mensaje específico
         if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-             setError("Tu sesión ha expirado o no tienes permisos. Por favor, inicia sesión de nuevo.");
+          setError("Tu sesión ha expirado o no tienes permisos. Por favor, inicia sesión de nuevo.");
         } else {
-             setError("No se pudieron cargar los datos del resumen. Intenta de nuevo más tarde.");
+          setError("No se pudieron cargar los datos del resumen. Intenta de nuevo más tarde.");
         }
       } finally {
         setLoading(false);
@@ -97,11 +73,7 @@ const DashboardPage: React.FC = () => {
     fetchData();
   }, []);
 
-  // Funciones para la navegación de los botones
-  const goToProducts = () => navigate('/productos');
-  const goToNewSale = () => navigate('/ventas');
-  const goToClients = () => navigate('/clientes');
-
+  /* Renderizado Condicional de Carga y Error */
   if (loading) {
     return (
       <Container className="my-5 text-center">
@@ -122,9 +94,10 @@ const DashboardPage: React.FC = () => {
     );
   }
 
+  /* Renderizado del Dashboard */
   return (
-    // AÑADIDO: pb-5 para padding-bottom en el contenedor principal
     <Container className="my-5 pb-5">
+      /* Sección de Bienvenida */
       <Row className="justify-content-center mb-4">
         <Col md={8} className="text-center animate__animated animate__fadeInUp">
           <h1 className="animate__animated animate__fadeInUp">
@@ -137,8 +110,8 @@ const DashboardPage: React.FC = () => {
         </Col>
       </Row>
 
+      /* Tarjetas de Resumen */
       <Row className="justify-content-center animate__animated animate__fadeInUp">
-        {/* Tarjeta de Resumen: Total Productos */}
         <Col md={4} className="mb-4 animate__animated animate__fadeInUp">
           <Card className="text-center shadow-sm animate__animated animate__fadeInUp">
             <Card.Body>
@@ -146,14 +119,10 @@ const DashboardPage: React.FC = () => {
               <Card.Text className="fs-1 fw-bold">
                 {totalProducts !== null ? totalProducts : "Cargando..."}
               </Card.Text>
-              <Button variant="primary" onClick={goToProducts}>
-                Ir a Productos
-              </Button>
             </Card.Body>
           </Card>
         </Col>
 
-        {/* Tarjeta de Resumen: Total Clientes */}
         <Col md={4} className="mb-4 animate__animated animate__fadeInUp">
           <Card className="text-center shadow-sm animate__animated animate__fadeInUp">
             <Card.Body>
@@ -161,14 +130,10 @@ const DashboardPage: React.FC = () => {
               <Card.Text className="fs-1 fw-bold animate__animated animate__fadeInUp">
                 {totalClients !== null ? totalClients : "Cargando..."}
               </Card.Text>
-              <Button variant="info" onClick={goToClients}>
-                Ver Clientes
-              </Button>
             </Card.Body>
           </Card>
         </Col>
 
-        {/* Tarjeta de Resumen: Total Ventas */}
         <Col md={4} className="mb-4 animate__animated animate__fadeInUp">
           <Card className="text-center shadow-sm animate__animated animate__fadeInUp">
             <Card.Body>
@@ -178,15 +143,12 @@ const DashboardPage: React.FC = () => {
                   ? `$${totalSalesAmount.toFixed(2)}`
                   : "Cargando..."}
               </Card.Text>
-              <Button variant="success" onClick={goToNewSale}>
-                Registrar Nueva Venta
-              </Button>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
-      {/* Sección del Gráfico */}
+      /* Sección del Gráfico de Distribución de Productos por Categoría */
       <Row className="mt-5 justify-content-center animate__animated animate__fadeInUp">
         <Col md={8}>
           <Card className="p-3 shadow-sm animate__animated animate__fadeInUp">
@@ -205,10 +167,10 @@ const DashboardPage: React.FC = () => {
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
-                      nameKey="name" // Usa 'name' para la leyenda y el tooltip
-                      animationBegin={0} // Inicia la animación inmediatamente
-                      animationDuration={800} // Duración de la animación en milisegundos
-                      isAnimationActive={true} // Habilita la animación
+                      nameKey="name"
+                      animationBegin={0}
+                      animationDuration={800}
+                      isAnimationActive={true}
                     >
                       {productsByCategory.map((_entry, index) => (
                         <Cell
@@ -217,8 +179,8 @@ const DashboardPage: React.FC = () => {
                         />
                       ))}
                     </Pie>
-                    <Tooltip /> {/* Muestra información al pasar el ratón */}
-                    <Legend /> {/* Muestra la leyenda de las categorías */}
+                    <Tooltip />
+                    <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
@@ -231,7 +193,7 @@ const DashboardPage: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Sección de Información General del Sistema - Eliminamos mb-5 de la Row y agregamos pb-5 al Container */}
+      /* Sección de Información General del Sistema */
       <Row className="mt-4 animate__animated animate__fadeInUp">
         <Col>
           <Card className="p-3 shadow-sm animate__animated animate__fadeInUp">

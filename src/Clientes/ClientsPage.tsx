@@ -1,46 +1,45 @@
-// src/pages/ClientsPage.tsx
 import React, { useEffect, useState } from 'react';
-import { Container, Table, Button, Spinner, Alert, Modal } from 'react-bootstrap';
-import ClientForm from '../Clientes/ClientForm'; // Asegúrate de que la ruta sea correcta
-
-// --- ¡IMPORTA TU INSTANCIA CONFIGURADA DE AXIOS AQUÍ! ---
+import { Container, Table, Button, Spinner, Alert, Modal, Form, Row, Col } from 'react-bootstrap';
 import api from '../api/axiosConfig';
 
-// Define la interfaz para la estructura de tus clientes
-interface Client {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-}
+/* Importaciones de Interfaces */
+import type { Client } from './interfaces/Client';
+import type { ClientApiResponse } from './interfaces/ClientApiResponse';
 
 const ClientsPage: React.FC = () => {
+  /* Estados para la Tabla de Clientes */
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionMessageType, setActionMessageType] = useState<'success' | 'danger' | null>(null);
 
-  // Estados para el modal de Crear/Editar
-  const [showFormModal, setShowFormModal] = useState<boolean>(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null); // Cliente a editar, o null para crear
+  /* Estados para el Formulario de Crear/Editar */
+  const [showClientForm, setShowClientForm] = useState<boolean>(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
 
-  // Estados para el modal de Confirmación de Eliminación
+  /* Estados del Formulario */
+  const [name, setName] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
+  const [formMessage, setFormMessage] = useState<string | null>(null);
+  const [formMessageType, setFormMessageType] = useState<'success' | 'danger' | null>(null);
+  const [formLoading, setFormLoading] = useState<boolean>(false);
+
+  /* Estados para el Modal de Confirmación de Eliminación */
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
-  const [clientToDelete, setClientToDelete] = useState<Client | null>(null); // Cliente que se va a eliminar
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
-  // Función para cargar los clientes del backend
+  /* Funciones de Carga de Datos */
   const fetchClients = async () => {
     setLoading(true);
     setError(null);
     try {
-      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.get' EN LUGAR DE 'fetch'! ---
-      const response = await api.get<Client[]>('/clients'); // Axios ya maneja la URL base y el JSON
-      setClients(response.data); // Los datos están en response.data
-    } catch (err: any) { // Mantenemos 'any' para el error general
+      const response = await api.get<Client[]>('/clients');
+      setClients(response.data);
+    } catch (err: any) {
       console.error("Error al obtener los clientes:", err);
-      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
         setError("Tu sesión ha expirado o no tienes permisos para ver clientes.");
       } else {
@@ -51,70 +50,131 @@ const ClientsPage: React.FC = () => {
     }
   };
 
-  // Carga los clientes cuando el componente se monta
+  /* Efectos de Carga Inicial y Formulario */
   useEffect(() => {
     fetchClients();
   }, []);
 
-  // Funciones para abrir y cerrar el modal de Crear/Editar
-  const handleShowCreateModal = () => {
-    setEditingClient(null); // Asegurarse de que no haya cliente en edición (modo crear)
-    setShowFormModal(true);
-    setActionMessage(null); // Limpiar mensajes al abrir modal
+  useEffect(() => {
+    if (showClientForm) {
+      if (editingClient) {
+        setName(editingClient.name);
+        setEmail(editingClient.email);
+        setPhone(editingClient.phone);
+        setAddress(editingClient.address);
+      } else {
+        setName('');
+        setEmail('');
+        setPhone('');
+        setAddress('');
+      }
+      setFormMessage(null);
+      setFormMessageType(null);
+      setFormLoading(false);
+    }
+  }, [editingClient, showClientForm]);
+
+  /* Funciones para la Tabla de Clientes */
+  const handleShowCreateForm = () => {
+    setEditingClient(null);
+    setShowClientForm(true);
+    setActionMessage(null);
     setActionMessageType(null);
   };
 
-  const handleShowEditModal = (client: Client) => {
-    setEditingClient(client); // Establecer el cliente a editar
-    setShowFormModal(true);
-    setActionMessage(null); // Limpiar mensajes al abrir modal
+  const handleShowEditForm = (client: Client) => {
+    setEditingClient(client);
+    setShowClientForm(true);
+    setActionMessage(null);
     setActionMessageType(null);
   };
 
-  const handleCloseFormModal = () => {
-    setShowFormModal(false);
-    setEditingClient(null); // Limpiar el cliente en edición al cerrar el modal
+  const handleCancelForm = () => {
+    setShowClientForm(false);
+    setEditingClient(null);
   };
 
-  // Función que se llama cuando el formulario del modal guarda (crea o edita) un cliente
   const handleClientSaved = () => {
-    fetchClients(); // Recargar la lista de clientes para ver los cambios
-    // El modal se cerrará automáticamente desde ClientForm al guardar con éxito
-    setActionMessage('Operación realizada con éxito.'); // Mensaje genérico de éxito
+    fetchClients();
+    setShowClientForm(false);
+    setEditingClient(null);
+    setActionMessage('Operación realizada con éxito.');
     setActionMessageType('success');
   };
 
-  // --- Lógica para el modal de confirmación de eliminación ---
+  /* Lógica para el Formulario de Cliente */
+  const handleSubmitForm = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setFormMessage(null);
+    setFormMessageType(null);
+    setFormLoading(true);
+
+    if (!name || !email || !phone || !address) {
+      setFormMessage('Todos los campos son obligatorios.');
+      setFormMessageType('danger');
+      setFormLoading(false);
+      return;
+    }
+
+    const clientDataToSend = {
+      name,
+      email,
+      phone,
+      address,
+    };
+
+    try {
+      let response;
+      if (editingClient) {
+        response = await api.put<ClientApiResponse>(`/clients/${editingClient.id}`, clientDataToSend);
+      } else {
+        response = await api.post<ClientApiResponse>('/clients', clientDataToSend);
+      }
+
+      setFormMessage(response.data.message || `Cliente ${editingClient ? 'actualizado' : 'guardado'} exitosamente.`);
+      setFormMessageType('success');
+      handleClientSaved();
+
+    } catch (error: any) {
+      console.error('Error al guardar/actualizar el cliente:', error);
+      if (error.response && error.response.data && error.response.data.message) {
+        setFormMessage(error.response.data.message);
+      } else {
+        setFormMessage('No se pudo conectar con el servidor. Intenta de nuevo más tarde.');
+      }
+      setFormMessageType('danger');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  /* Lógica para el Modal de Confirmación de Eliminación */
   const handleShowDeleteConfirm = (client: Client) => {
-    setClientToDelete(client); // Guarda el cliente a eliminar
-    setShowDeleteConfirmModal(true); // Muestra el modal de confirmación
-    setActionMessage(null); // Limpiar mensajes previos
+    setClientToDelete(client);
+    setShowDeleteConfirmModal(true);
+    setActionMessage(null);
     setActionMessageType(null);
   };
 
   const handleCloseDeleteConfirm = () => {
     setShowDeleteConfirmModal(false);
-    setClientToDelete(null); // Limpiar el cliente a eliminar
+    setClientToDelete(null);
   };
 
   const confirmDelete = async () => {
-    if (!clientToDelete) return; // Si no hay cliente para eliminar, salir
+    if (!clientToDelete) return;
 
     const clientId = clientToDelete.id;
-    handleCloseDeleteConfirm(); // Cierra el modal de confirmación
+    handleCloseDeleteConfirm();
 
     try {
-      // --- ¡CAMBIO CRÍTICO AQUÍ: USA 'api.delete' EN LUGAR DE 'fetch'! ---
-      // Axios maneja el 204 No Content como una respuesta exitosa
       await api.delete(`/clients/${clientId}`);
 
       setActionMessage('Cliente eliminado exitosamente.');
       setActionMessageType('success');
-      // Actualizar la lista de clientes en el frontend sin recargar toda la página
       setClients(prevClients => prevClients.filter(c => c.id !== clientId));
-    } catch (err: any) { // Mantenemos 'any' para el error general
+    } catch (err: any) {
       console.error("Error al eliminar el cliente:", err);
-      // El interceptor de respuesta en axiosConfig.ts ya debería manejar 401/403
       if (err.response && err.response.data && err.response.data.message) {
         setActionMessage(err.response.data.message);
       } else {
@@ -123,9 +183,8 @@ const ClientsPage: React.FC = () => {
       setActionMessageType('danger');
     }
   };
-  // --- Fin lógica modal de confirmación de eliminación ---
 
-
+  /* Renderizado Condicional de la Página */
   if (loading) {
     return (
       <Container className="my-5 text-center">
@@ -146,6 +205,92 @@ const ClientsPage: React.FC = () => {
     );
   }
 
+  /* Formulario de Cliente */
+  if (showClientForm) {
+    return (
+      <Container className="my-5 animate__animated animate__fadeInUp">
+        <h2 className="mb-4">{editingClient ? 'Editar Cliente' : 'Agregar Nuevo Cliente'}</h2>
+        {formMessage && <Alert variant={formMessageType || 'info'}>{formMessage}</Alert>}
+
+        <Form onSubmit={handleSubmitForm}>
+          <Form.Group className="mb-3" controlId="formClientName">
+            <Form.Label>Nombre del Cliente</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Ingrese el nombre del cliente"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              disabled={formLoading}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3" controlId="formClientEmail">
+            <Form.Label>Email</Form.Label>
+            <Form.Control
+              type="email"
+              placeholder="Ingrese el email del cliente"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={formLoading}
+            />
+          </Form.Group>
+
+          <Row className="mb-3">
+            <Form.Group as={Col} controlId="formClientPhone">
+              <Form.Label>Teléfono</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Ingrese el teléfono"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                disabled={formLoading}
+              />
+            </Form.Group>
+
+            <Form.Group as={Col} controlId="formClientAddress">
+              <Form.Label>Dirección</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Ingrese la dirección"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                required
+                disabled={formLoading}
+              />
+            </Form.Group>
+          </Row>
+
+          <div className="d-flex justify-content-end">
+            <Button variant="secondary" onClick={handleCancelForm} className="me-2" disabled={formLoading}>
+              Cancelar
+            </Button>
+            <Button variant="success" type="submit" disabled={formLoading}>
+              {formLoading ? (
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                    className="me-1"
+                  />
+                  {editingClient ? 'Actualizando...' : 'Guardando...'}
+                </>
+              ) : (
+                editingClient ? 'Actualizar Cliente' : 'Guardar Cliente'
+              )}
+            </Button>
+          </div>
+        </Form>
+      </Container>
+    );
+  }
+
+  /* Tabla de Gestión de Clientes */
   return (
     <Container className="my-5 animate__animated animate__fadeInUp">
       <h2 className="mb-4 animate__animated animate__fadeInUp">
@@ -154,8 +299,8 @@ const ClientsPage: React.FC = () => {
       {actionMessage && (
         <Alert variant={actionMessageType || "info"}>{actionMessage}</Alert>
       )}
-      <div className="d-flex justify-content-end mb-3 animate__animated animate__fadeInUp ">
-        <Button variant="success" onClick={handleShowCreateModal}>
+      <div className="d-flex justify-content-end mb-3 animate__animated animate__fadeInUp">
+        <Button variant="success" onClick={handleShowCreateForm}>
           Agregar Nuevo Cliente
         </Button>
       </div>
@@ -191,7 +336,7 @@ const ClientsPage: React.FC = () => {
                     variant="info"
                     size="sm"
                     className="me-2"
-                    onClick={() => handleShowEditModal(client)}
+                    onClick={() => handleShowEditForm(client)}
                   >
                     Editar
                   </Button>
@@ -209,13 +354,7 @@ const ClientsPage: React.FC = () => {
         </Table>
       )}
 
-      <ClientForm
-        show={showFormModal}
-        onHide={handleCloseFormModal}
-        onSave={handleClientSaved}
-        editingClient={editingClient}
-      />
-
+      /* Modal de Confirmación de Eliminación */
       <Modal show={showDeleteConfirmModal} onHide={handleCloseDeleteConfirm} centered>
         <Modal.Header closeButton>
           <Modal.Title>Confirmar Eliminación</Modal.Title>
