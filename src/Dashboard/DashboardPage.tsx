@@ -97,7 +97,6 @@ const DashboardPage: React.FC = () => {
   /* Renderizado del Dashboard */
   return (
     <Container className="my-5 pb-5">
-      /* Sección de Bienvenida */
       <Row className="justify-content-center mb-4">
         <Col md={8} className="text-center animate__animated animate__fadeInUp">
           <h1 className="animate__animated animate__fadeInUp">
@@ -110,7 +109,6 @@ const DashboardPage: React.FC = () => {
         </Col>
       </Row>
 
-      /* Tarjetas de Resumen */
       <Row className="justify-content-center animate__animated animate__fadeInUp">
         <Col md={4} className="mb-4 animate__animated animate__fadeInUp">
           <Card className="text-center shadow-sm animate__animated animate__fadeInUp">
@@ -148,7 +146,6 @@ const DashboardPage: React.FC = () => {
         </Col>
       </Row>
 
-      /* Sección del Gráfico de Distribución de Productos por Categoría */
       <Row className="mt-5 justify-content-center animate__animated animate__fadeInUp">
         <Col md={8}>
           <Card className="p-3 shadow-sm animate__animated animate__fadeInUp">
@@ -193,7 +190,6 @@ const DashboardPage: React.FC = () => {
         </Col>
       </Row>
 
-      /* Sección de Información General del Sistema */
       <Row className="mt-4 animate__animated animate__fadeInUp">
         <Col>
           <Card className="p-3 shadow-sm animate__animated animate__fadeInUp">

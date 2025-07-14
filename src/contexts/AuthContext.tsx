@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (token && storedUser) {
         try {
-          const response = await axios.get('http://localhost:3001/api/verify-token', {
+          const response = await axios.get('http://localhost:3002/api/verify-token', {
             headers: {
               Authorization: `Bearer ${token}`
             }

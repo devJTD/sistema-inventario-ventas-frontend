@@ -354,7 +354,6 @@ const ClientsPage: React.FC = () => {
         </Table>
       )}
 
-      /* Modal de Confirmación de Eliminación */
       <Modal show={showDeleteConfirmModal} onHide={handleCloseDeleteConfirm} centered>
         <Modal.Header closeButton>
           <Modal.Title>Confirmar Eliminación</Modal.Title>
