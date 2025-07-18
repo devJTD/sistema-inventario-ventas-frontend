@@ -16,6 +16,7 @@ import ClientsPage from './pages/ClientsPage';
 import ProvidersPage from './pages/ProvidersPage';
 import SalesPage from './pages/SalesPage';
 import UsersPage from './pages/UsersPage';
+import CategoriesPage from './pages/CategoriesPage';
 
 // Importaciones de contextos y tipos
 import { useAuth } from './contexts/AuthContext';
@@ -33,6 +34,7 @@ const WindowComponentMap: { [key: string]: React.ComponentType<any> } = {
   Proveedores: ProvidersPage,
   Ventas: SalesPage,
   Usuarios: UsersPage,
+  Categorias: CategoriesPage,
 };
 
 function App() {

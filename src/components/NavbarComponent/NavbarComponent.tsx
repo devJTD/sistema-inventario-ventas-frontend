@@ -54,11 +54,20 @@ const NavbarComponent: React.FC<NavbarComponentProps> = ({ openNewWindow, userRo
               </Nav.Link>
             )}
 
+
+            {hasPermission(['admin', 'almacenista']) && (
+              <Nav.Link onClick={() => openNewWindow('Categorias', 'Gestión de Categorías')}>
+              Categorías
+            </Nav.Link>
+            )}
+            
             {hasPermission(['admin']) && (
               <Nav.Link onClick={() => openNewWindow('Usuarios', 'Gestión de Usuarios', ['admin'])}>
                 Usuarios
               </Nav.Link>
             )}
+
+            
           </Nav>
           <Nav>
             {user && (

@@ -5,6 +5,8 @@ import api from '../api/axiosConfig';
 /* Importaciones de Interfaces */
 import type { Product } from '../interfaces/Product';
 import type { ProductApiResponse } from '../interfaces/ProductApiResponse';
+import type { Category } from '../interfaces/Category';
+
 
 const ProductTable: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -19,7 +21,7 @@ const ProductTable: React.FC = () => {
   const [name, setName] = useState<string>('');
   const [price, setPrice] = useState<string>('');
   const [stock, setStock] = useState<string>('');
-  const [category, setCategory] = useState<string>('');
+  const [categoryId, setCategoryId] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [formMessageType, setFormMessageType] = useState<'success' | 'danger' | null>(null);
@@ -28,26 +30,32 @@ const ProductTable: React.FC = () => {
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  const fetchProducts = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await api.get<Product[]>('/products');
-      setProducts(response.data);
-    } catch (err: any) {
-      console.error("Error al obtener los productos:", err);
-      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-        setError("Tu sesión ha expirado o no tienes permisos para ver productos.");
-      } else {
-        setError("No se pudieron cargar los productos. Intenta de nuevo más tarde.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
+
+  const fetchProductsAndCategories = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [productsRes, categoriesRes] = await Promise.all([
+        api.get<Product[]>('/products'),
+        api.get<Category[]>('/categories')
+      ]);
+      setProducts(productsRes.data);
+      setAvailableCategories(categoriesRes.data);
+    } catch (err: any) {
+      console.error("Error al obtener productos o categorías:", err);
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        setError("Tu sesión ha expirado o no tienes permisos para ver productos o categorías.");
+      } else {
+        setError("No se pudieron cargar los productos o categorías. Intenta de nuevo más tarde.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchProducts();
+    fetchProductsAndCategories();
   }, []);
 
   useEffect(() => {
@@ -56,13 +64,13 @@ const ProductTable: React.FC = () => {
         setName(editingProduct.name);
         setPrice(editingProduct.price.toString());
         setStock(editingProduct.stock.toString());
-        setCategory(editingProduct.category);
+        setCategoryId(editingProduct.categoryId);
         setDescription(editingProduct.description);
       } else {
         setName('');
         setPrice('');
         setStock('');
-        setCategory('');
+        setCategoryId('');
         setDescription('');
       }
       setFormMessage(null);
@@ -91,7 +99,7 @@ const ProductTable: React.FC = () => {
   };
 
   const handleProductSaved = () => {
-    fetchProducts();
+    fetchProductsAndCategories();
     setShowProductForm(false);
     setEditingProduct(null);
     setActionMessage('Operación realizada con éxito.');
@@ -104,7 +112,7 @@ const ProductTable: React.FC = () => {
     setFormMessageType(null);
     setFormLoading(true);
 
-    if (!name || !price || !stock || !category || !description) {
+    if (!name || !price || !stock || !categoryId  || !description) {
       setFormMessage('Todos los campos son obligatorios.');
       setFormMessageType('danger');
       setFormLoading(false);
@@ -125,7 +133,7 @@ const ProductTable: React.FC = () => {
       name,
       price: productPrice,
       stock: productStock,
-      category,
+      categoryId,
       description,
     };
 
@@ -189,6 +197,11 @@ const ProductTable: React.FC = () => {
     }
   };
 
+const getCategoryName = (categoryId: string) => {
+    const category = availableCategories.find(cat => cat.id === categoryId);
+    return category ? category.name : "Categoría Desconocida";
+  };
+
   if (loading) {
     return (
       <Container className="my-5 text-center">
@@ -204,7 +217,7 @@ const ProductTable: React.FC = () => {
     return (
       <Container className="my-5">
         <Alert variant="danger">{error}</Alert>
-        <Button variant="secondary" onClick={fetchProducts}>Reintentar Carga</Button>
+        <Button variant="secondary" onClick={fetchProductsAndCategories}>Reintentar Carga</Button>
       </Container>
     );
   }
@@ -256,21 +269,20 @@ const ProductTable: React.FC = () => {
           </Row>
 
           <Form.Group className="mb-3" controlId="formProductCategory">
-            <Form.Label>Categoría</Form.Label>
-            <Form.Select
-              aria-label="Seleccione una categoría"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              required
-              disabled={formLoading}
-            >
-              <option value="">Seleccione una categoría</option>
-              <option value="Electrónica">Electrónica</option>
-              <option value="Ropa">Ropa</option>
-              <option value="Alimentos">Alimentos</option>
-              <option value="Hogar">Hogar</option>
-            </Form.Select>
-          </Form.Group>
+            <Form.Label>Categoría</Form.Label>
+            <Form.Select
+              aria-label="Seleccione una categoría"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              required
+              disabled={formLoading}
+            >
+              <option value="">Seleccione una categoría</option>
+              {availableCategories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </Form.Select>
+          </Form.Group>
 
           <Form.Group className="mb-3" controlId="formProductDescription">
             <Form.Label>Descripción</Form.Label>
@@ -349,7 +361,7 @@ const ProductTable: React.FC = () => {
                 <td>{product.name}</td>
                 <td>${product.price ? product.price.toFixed(2) : "N/A"}</td>
                 <td>{product.stock}</td>
-                <td>{product.category || "N/A"}</td>
+                <td>{getCategoryName(product.categoryId)}</td>
                 <td>{product.description || "N/A"}</td>
                 <td className="text-center">
                   <Button

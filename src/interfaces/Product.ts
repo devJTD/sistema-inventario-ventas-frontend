@@ -4,6 +4,6 @@ export interface Product {
   name: string;
   price: number;
   stock: number;
-  category: string;
+  categoryId: string; /* Ahora se refiere al ID de la categoría. */
   description: string;
 }
