@@ -2,8 +2,8 @@ import React, { createContext, useState, useEffect, useContext, useCallback } fr
 import axios from 'axios';
 
 /* Importaciones de Interfaces */
-import type { User } from '../Usuarios/interfaces/User';
-import type { AuthContextType } from './interfaces/AuthContextType';
+import type { User } from '../interfaces/User';
+import type { AuthContextType } from '../interfaces/AuthContextType';
 
 /* Creación del Contexto de Autenticación */
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (token && storedUser) {
         try {
-          const response = await axios.get('http://localhost:3001/api/verify-token', {
+          const response = await axios.get('http://localhost:3002/api/verify-token', {
             headers: {
               Authorization: `Bearer ${token}`
             }

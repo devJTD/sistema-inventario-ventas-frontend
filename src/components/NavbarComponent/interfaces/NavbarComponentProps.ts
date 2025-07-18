@@ -1,4 +1,4 @@
-import type { UserRole } from '../../../Usuarios/types/UserRole';
+import type { UserRole } from '../../../types/UserRole';
 
 /* Define las propiedades esperadas por el componente NavbarComponent. */
 export interface NavbarComponentProps {

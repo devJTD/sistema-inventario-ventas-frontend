@@ -1,4 +1,4 @@
-import type { User } from '../../Usuarios/interfaces/User';
+import type { User } from './User';
 
 /* Define la interfaz para el valor que expondrá el contexto de autenticación. */
 export interface AuthContextType {

@@ -9,17 +9,17 @@ import Taskbar from './components/Taskbar/Taskbar';
 import NavbarComponent from './components/NavbarComponent/NavbarComponent';
 
 // Importaciones de páginas con rutas actualizadas
-import LoginPage from './Login/LoginPage';
-import DashboardPage from './Dashboard/DashboardPage';
-import ProductTable from './Productos/ProductTable';
-import ClientsPage from './Clientes/ClientsPage';
-import ProvidersPage from './Proveedores/ProvidersPage';
-import SalesPage from './Ventas/SalesPage';
-import UsersPage from './Usuarios/UsersPage';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import ProductTable from './pages/ProductTable';
+import ClientsPage from './pages/ClientsPage';
+import ProvidersPage from './pages/ProvidersPage';
+import SalesPage from './pages/SalesPage';
+import UsersPage from './pages/UsersPage';
 
 // Importaciones de contextos y tipos
 import { useAuth } from './contexts/AuthContext';
-import type { UserRole } from './Usuarios/types/UserRole'; 
+import type { UserRole } from './types/UserRole'; 
 import type { WindowInfo } from './components/WindowComponent/interfaces/WindowInfo'; 
 import type { TaskbarWindow } from './components/Taskbar/interfaces/TaskbarWindow'; 
 

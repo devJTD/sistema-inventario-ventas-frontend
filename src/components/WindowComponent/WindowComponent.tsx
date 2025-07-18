@@ -109,7 +109,6 @@ const WindowComponent: React.FC<WindowComponentProps> = ({
             flexDirection: "column",
           }}
         >
-          /* Encabezado de la Tarjeta con Controles */
           <Card.Header
             className="window-header d-flex justify-content-between align-items-center bg-primary text-white"
           >
@@ -166,7 +165,6 @@ const WindowComponent: React.FC<WindowComponentProps> = ({
               </Button>
             </div>
           </Card.Header>
-          /* Cuerpo de la Tarjeta con Contenido de la Ventana */
           <Card.Body style={cardBodyStyle}>
             {children}{" "}
           </Card.Body>

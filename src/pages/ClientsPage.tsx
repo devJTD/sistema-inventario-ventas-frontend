@@ -3,24 +3,23 @@ import { Container, Table, Button, Spinner, Alert, Modal, Form, Row, Col } from 
 import api from '../api/axiosConfig';
 
 /* Importaciones de Interfaces */
-import type { Provider } from './interfaces/Provider';
-import type { ProviderApiResponse } from './interfaces/ProviderApiResponse';
+import type { Client } from '../interfaces/Client';
+import type { ClientApiResponse } from '../interfaces/ClientApiResponse';
 
-const ProvidersPage: React.FC = () => {
-  /* Estados para la Tabla de Proveedores */
-  const [providers, setProviders] = useState<Provider[]>([]);
+const ClientsPage: React.FC = () => {
+  /* Estados para la Tabla de Clientes */
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionMessageType, setActionMessageType] = useState<'success' | 'danger' | null>(null);
 
   /* Estados para el Formulario de Crear/Editar */
-  const [showProviderForm, setShowProviderForm] = useState<boolean>(false);
-  const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
+  const [showClientForm, setShowClientForm] = useState<boolean>(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   /* Estados del Formulario */
   const [name, setName] = useState<string>('');
-  const [contactPerson, setContactPerson] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [address, setAddress] = useState<string>('');
@@ -30,21 +29,21 @@ const ProvidersPage: React.FC = () => {
 
   /* Estados para el Modal de Confirmación de Eliminación */
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
-  const [providerToDelete, setProviderToDelete] = useState<Provider | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
   /* Funciones de Carga de Datos */
-  const fetchProviders = async () => {
+  const fetchClients = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get<Provider[]>('/providers');
-      setProviders(response.data);
+      const response = await api.get<Client[]>('/clients');
+      setClients(response.data);
     } catch (err: any) {
-      console.error("Error al obtener los proveedores:", err);
+      console.error("Error al obtener los clientes:", err);
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-        setError("Tu sesión ha expirado o no tienes permisos para ver proveedores.");
+        setError("Tu sesión ha expirado o no tienes permisos para ver clientes.");
       } else {
-        setError("No se pudieron cargar los proveedores. Intenta de nuevo más tarde.");
+        setError("No se pudieron cargar los clientes. Intenta de nuevo más tarde.");
       }
     } finally {
       setLoading(false);
@@ -53,20 +52,18 @@ const ProvidersPage: React.FC = () => {
 
   /* Efectos de Carga Inicial y Formulario */
   useEffect(() => {
-    fetchProviders();
+    fetchClients();
   }, []);
 
   useEffect(() => {
-    if (showProviderForm) {
-      if (editingProvider) {
-        setName(editingProvider.name);
-        setContactPerson(editingProvider.contactPerson);
-        setEmail(editingProvider.email);
-        setPhone(editingProvider.phone);
-        setAddress(editingProvider.address);
+    if (showClientForm) {
+      if (editingClient) {
+        setName(editingClient.name);
+        setEmail(editingClient.email);
+        setPhone(editingClient.phone);
+        setAddress(editingClient.address);
       } else {
         setName('');
-        setContactPerson('');
         setEmail('');
         setPhone('');
         setAddress('');
@@ -75,53 +72,52 @@ const ProvidersPage: React.FC = () => {
       setFormMessageType(null);
       setFormLoading(false);
     }
-  }, [editingProvider, showProviderForm]);
+  }, [editingClient, showClientForm]);
 
-  /* Funciones de la Tabla de Proveedores */
+  /* Funciones para la Tabla de Clientes */
   const handleShowCreateForm = () => {
-    setEditingProvider(null);
-    setShowProviderForm(true);
+    setEditingClient(null);
+    setShowClientForm(true);
     setActionMessage(null);
     setActionMessageType(null);
   };
 
-  const handleShowEditForm = (provider: Provider) => {
-    setEditingProvider(provider);
-    setShowProviderForm(true);
+  const handleShowEditForm = (client: Client) => {
+    setEditingClient(client);
+    setShowClientForm(true);
     setActionMessage(null);
     setActionMessageType(null);
   };
 
   const handleCancelForm = () => {
-    setShowProviderForm(false);
-    setEditingProvider(null);
+    setShowClientForm(false);
+    setEditingClient(null);
   };
 
-  const handleProviderSaved = () => {
-    fetchProviders();
-    setShowProviderForm(false);
-    setEditingProvider(null);
+  const handleClientSaved = () => {
+    fetchClients();
+    setShowClientForm(false);
+    setEditingClient(null);
     setActionMessage('Operación realizada con éxito.');
     setActionMessageType('success');
   };
 
-  /* Lógica del Formulario de Proveedor */
+  /* Lógica para el Formulario de Cliente */
   const handleSubmitForm = async (event: React.FormEvent) => {
     event.preventDefault();
     setFormMessage(null);
     setFormMessageType(null);
     setFormLoading(true);
 
-    if (!name || !contactPerson || !email || !phone || !address) {
+    if (!name || !email || !phone || !address) {
       setFormMessage('Todos los campos son obligatorios.');
       setFormMessageType('danger');
       setFormLoading(false);
       return;
     }
 
-    const providerDataToSend = {
+    const clientDataToSend = {
       name,
-      contactPerson,
       email,
       phone,
       address,
@@ -129,18 +125,18 @@ const ProvidersPage: React.FC = () => {
 
     try {
       let response;
-      if (editingProvider) {
-        response = await api.put<ProviderApiResponse>(`/providers/${editingProvider.id}`, providerDataToSend);
+      if (editingClient) {
+        response = await api.put<ClientApiResponse>(`/clients/${editingClient.id}`, clientDataToSend);
       } else {
-        response = await api.post<ProviderApiResponse>('/providers', providerDataToSend);
+        response = await api.post<ClientApiResponse>('/clients', clientDataToSend);
       }
 
-      setFormMessage(response.data.message || `Proveedor ${editingProvider ? 'actualizado' : 'guardado'} exitosamente.`);
+      setFormMessage(response.data.message || `Cliente ${editingClient ? 'actualizado' : 'guardado'} exitosamente.`);
       setFormMessageType('success');
-      handleProviderSaved();
+      handleClientSaved();
 
     } catch (error: any) {
-      console.error('Error al guardar/actualizar el proveedor:', error);
+      console.error('Error al guardar/actualizar el cliente:', error);
       if (error.response && error.response.data && error.response.data.message) {
         setFormMessage(error.response.data.message);
       } else {
@@ -152,9 +148,9 @@ const ProvidersPage: React.FC = () => {
     }
   };
 
-  /* Lógica del Modal de Confirmación de Eliminación */
-  const handleShowDeleteConfirm = (provider: Provider) => {
-    setProviderToDelete(provider);
+  /* Lógica para el Modal de Confirmación de Eliminación */
+  const handleShowDeleteConfirm = (client: Client) => {
+    setClientToDelete(client);
     setShowDeleteConfirmModal(true);
     setActionMessage(null);
     setActionMessageType(null);
@@ -162,27 +158,27 @@ const ProvidersPage: React.FC = () => {
 
   const handleCloseDeleteConfirm = () => {
     setShowDeleteConfirmModal(false);
-    setProviderToDelete(null);
+    setClientToDelete(null);
   };
 
   const confirmDelete = async () => {
-    if (!providerToDelete) return;
+    if (!clientToDelete) return;
 
-    const providerId = providerToDelete.id;
+    const clientId = clientToDelete.id;
     handleCloseDeleteConfirm();
 
     try {
-      await api.delete(`/providers/${providerId}`);
+      await api.delete(`/clients/${clientId}`);
 
-      setActionMessage('Proveedor eliminado exitosamente.');
+      setActionMessage('Cliente eliminado exitosamente.');
       setActionMessageType('success');
-      setProviders(prevProviders => prevProviders.filter(p => p.id !== providerId));
+      setClients(prevClients => prevClients.filter(c => c.id !== clientId));
     } catch (err: any) {
-      console.error("Error al eliminar el proveedor:", err);
+      console.error("Error al eliminar el cliente:", err);
       if (err.response && err.response.data && err.response.data.message) {
         setActionMessage(err.response.data.message);
       } else {
-        setActionMessage('No se pudo conectar con el servidor para eliminar el proveedor.');
+        setActionMessage('No se pudo conectar con el servidor para eliminar el cliente.');
       }
       setActionMessageType('danger');
     }
@@ -193,9 +189,9 @@ const ProvidersPage: React.FC = () => {
     return (
       <Container className="my-5 text-center">
         <Spinner animation="border" role="status">
-          <span className="visually-hidden">Cargando proveedores...</span>
+          <span className="visually-hidden">Cargando clientes...</span>
         </Spinner>
-        <p>Cargando proveedores...</p>
+        <p>Cargando clientes...</p>
       </Container>
     );
   }
@@ -204,24 +200,24 @@ const ProvidersPage: React.FC = () => {
     return (
       <Container className="my-5">
         <Alert variant="danger">{error}</Alert>
-        <Button variant="secondary" onClick={fetchProviders}>Reintentar Carga</Button>
+        <Button variant="secondary" onClick={fetchClients}>Reintentar Carga</Button>
       </Container>
     );
   }
 
-  /* Formulario de Proveedor */
-  if (showProviderForm) {
+  /* Formulario de Cliente */
+  if (showClientForm) {
     return (
       <Container className="my-5 animate__animated animate__fadeInUp">
-        <h2 className="mb-4">{editingProvider ? 'Editar Proveedor' : 'Agregar Nuevo Proveedor'}</h2>
+        <h2 className="mb-4">{editingClient ? 'Editar Cliente' : 'Agregar Nuevo Cliente'}</h2>
         {formMessage && <Alert variant={formMessageType || 'info'}>{formMessage}</Alert>}
 
         <Form onSubmit={handleSubmitForm}>
-          <Form.Group className="mb-3" controlId="formProviderName">
-            <Form.Label>Nombre del Proveedor</Form.Label>
+          <Form.Group className="mb-3" controlId="formClientName">
+            <Form.Label>Nombre del Cliente</Form.Label>
             <Form.Control
               type="text"
-              placeholder="Ingrese el nombre del proveedor"
+              placeholder="Ingrese el nombre del cliente"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -229,32 +225,20 @@ const ProvidersPage: React.FC = () => {
             />
           </Form.Group>
 
-          <Form.Group className="mb-3" controlId="formContactPerson">
-            <Form.Label>Persona de Contacto</Form.Label>
+          <Form.Group className="mb-3" controlId="formClientEmail">
+            <Form.Label>Email</Form.Label>
             <Form.Control
-              type="text"
-              placeholder="Ingrese el nombre de la persona de contacto"
-              value={contactPerson}
-              onChange={(e) => setContactPerson(e.target.value)}
+              type="email"
+              placeholder="Ingrese el email del cliente"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
               disabled={formLoading}
             />
           </Form.Group>
 
           <Row className="mb-3">
-            <Form.Group as={Col} controlId="formProviderEmail">
-              <Form.Label>Email</Form.Label>
-              <Form.Control
-                type="email"
-                placeholder="Ingrese el email del proveedor"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={formLoading}
-              />
-            </Form.Group>
-
-            <Form.Group as={Col} controlId="formProviderPhone">
+            <Form.Group as={Col} controlId="formClientPhone">
               <Form.Label>Teléfono</Form.Label>
               <Form.Control
                 type="text"
@@ -265,20 +249,19 @@ const ProvidersPage: React.FC = () => {
                 disabled={formLoading}
               />
             </Form.Group>
-          </Row>
 
-          <Form.Group className="mb-3" controlId="formProviderAddress">
-            <Form.Label>Dirección</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={2}
-              placeholder="Ingrese la dirección del proveedor"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              required
-              disabled={formLoading}
-            />
-          </Form.Group>
+            <Form.Group as={Col} controlId="formClientAddress">
+              <Form.Label>Dirección</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Ingrese la dirección"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                required
+                disabled={formLoading}
+              />
+            </Form.Group>
+          </Row>
 
           <div className="d-flex justify-content-end">
             <Button variant="secondary" onClick={handleCancelForm} className="me-2" disabled={formLoading}>
@@ -295,10 +278,10 @@ const ProvidersPage: React.FC = () => {
                     aria-hidden="true"
                     className="me-1"
                   />
-                  {editingProvider ? 'Actualizando...' : 'Guardando...'}
+                  {editingClient ? 'Actualizando...' : 'Guardando...'}
                 </>
               ) : (
-                editingProvider ? 'Actualizar Proveedor' : 'Guardar Proveedor'
+                editingClient ? 'Actualizar Cliente' : 'Guardar Cliente'
               )}
             </Button>
           </div>
@@ -307,23 +290,26 @@ const ProvidersPage: React.FC = () => {
     );
   }
 
-  /* Tabla de Gestión de Proveedores */
+  /* Tabla de Gestión de Clientes */
   return (
     <Container className="my-5 animate__animated animate__fadeInUp">
       <h2 className="mb-4 animate__animated animate__fadeInUp">
-        Gestión de Proveedores
+        Gestión de Clientes
       </h2>
       {actionMessage && (
         <Alert variant={actionMessageType || "info"}>{actionMessage}</Alert>
       )}
       <div className="d-flex justify-content-end mb-3 animate__animated animate__fadeInUp">
         <Button variant="success" onClick={handleShowCreateForm}>
-          Agregar Nuevo Proveedor
+          Agregar Nuevo Cliente
         </Button>
       </div>
-      {providers.length === 0 ? (
-        <Alert variant="info" className="text-center">
-          No hay proveedores registrados. ¡Agrega uno nuevo!
+      {clients.length === 0 ? (
+        <Alert
+          variant="info"
+          className="text-center animate__animated animate__fadeInUp"
+        >
+          No hay clientes registrados. ¡Agrega uno nuevo!
         </Alert>
       ) : (
         <Table striped bordered hover responsive>
@@ -331,7 +317,6 @@ const ProvidersPage: React.FC = () => {
             <tr>
               <th>ID</th>
               <th>Nombre</th>
-              <th>Contacto</th>
               <th>Email</th>
               <th>Teléfono</th>
               <th>Dirección</th>
@@ -339,27 +324,26 @@ const ProvidersPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {providers.map((provider) => (
-              <tr key={provider.id}>
-                <td>{provider.id}</td>
-                <td>{provider.name}</td>
-                <td>{provider.contactPerson}</td>
-                <td>{provider.email}</td>
-                <td>{provider.phone}</td>
-                <td>{provider.address}</td>
+            {clients.map((client) => (
+              <tr key={client.id}>
+                <td>{client.id}</td>
+                <td>{client.name}</td>
+                <td>{client.email}</td>
+                <td>{client.phone}</td>
+                <td>{client.address}</td>
                 <td className="text-center">
                   <Button
                     variant="info"
                     size="sm"
                     className="me-2"
-                    onClick={() => handleShowEditForm(provider)}
+                    onClick={() => handleShowEditForm(client)}
                   >
                     Editar
                   </Button>
                   <Button
                     variant="danger"
                     size="sm"
-                    onClick={() => handleShowDeleteConfirm(provider)}
+                    onClick={() => handleShowDeleteConfirm(client)}
                   >
                     Eliminar
                   </Button>
@@ -370,19 +354,12 @@ const ProvidersPage: React.FC = () => {
         </Table>
       )}
 
-      /* Modal de Confirmación de Eliminación */
-      <Modal
-        show={showDeleteConfirmModal}
-        onHide={handleCloseDeleteConfirm}
-        centered
-      >
+      <Modal show={showDeleteConfirmModal} onHide={handleCloseDeleteConfirm} centered>
         <Modal.Header closeButton>
           <Modal.Title>Confirmar Eliminación</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          ¿Estás seguro de que quieres eliminar al proveedor **
-          {providerToDelete?.name}** (ID: {providerToDelete?.id})? Esta acción
-          no se puede deshacer.
+          ¿Estás seguro de que quieres eliminar al cliente **{clientToDelete?.name}** (ID: {clientToDelete?.id})? Esta acción no se puede deshacer.
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseDeleteConfirm}>
@@ -397,4 +374,4 @@ const ProvidersPage: React.FC = () => {
   );
 };
 
-export default ProvidersPage;
+export default ClientsPage;
