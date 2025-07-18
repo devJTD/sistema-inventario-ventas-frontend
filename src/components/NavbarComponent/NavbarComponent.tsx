@@ -3,7 +3,7 @@ import { Navbar, Nav, Container, Button } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 
 /* Importación de Tipos */
-import type { UserRole } from '../../Usuarios/types/UserRole';
+import type { UserRole } from '../../types/UserRole';
 import type { NavbarComponentProps } from './interfaces/NavbarComponentProps';
 
 const NavbarComponent: React.FC<NavbarComponentProps> = ({ openNewWindow, userRole }) => {

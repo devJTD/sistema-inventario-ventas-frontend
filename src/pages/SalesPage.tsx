@@ -3,11 +3,11 @@ import { Container, Table, Button, Spinner, Alert, ListGroup, Collapse, Form, Ro
 import api from '../api/axiosConfig';
 
 /* Importaciones de Interfaces */
-import type { Product } from './interfaces/Product';
-import type { Client } from './interfaces/Client';
-import type { SaleItem } from './interfaces/SaleItem';
-import type { Sale } from './interfaces/Sale';
-import type { SaleApiResponse } from './interfaces/SaleApiResponse';
+import type { Product } from '../interfaces/Product';
+import type { Client } from '../interfaces/Client';
+import type { SaleItem } from '../interfaces/SaleItem';
+import type { Sale } from '../interfaces/Sale';
+import type { SaleApiResponse } from '../interfaces/SaleApiResponse';
 
 
 const SalesPage: React.FC = () => {

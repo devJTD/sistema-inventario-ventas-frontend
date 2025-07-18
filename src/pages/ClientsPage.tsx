@@ -3,8 +3,8 @@ import { Container, Table, Button, Spinner, Alert, Modal, Form, Row, Col } from 
 import api from '../api/axiosConfig';
 
 /* Importaciones de Interfaces */
-import type { Client } from './interfaces/Client';
-import type { ClientApiResponse } from './interfaces/ClientApiResponse';
+import type { Client } from '../interfaces/Client';
+import type { ClientApiResponse } from '../interfaces/ClientApiResponse';
 
 const ClientsPage: React.FC = () => {
   /* Estados para la Tabla de Clientes */

@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axiosConfig';
 
 /* Importación de Interfaces */
-import type { LoginResponse } from './interfaces/LoginResponse';
+import type { LoginResponse } from '../interfaces/LoginResponse';
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState<string>('');

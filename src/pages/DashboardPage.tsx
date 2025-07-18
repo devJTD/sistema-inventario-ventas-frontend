@@ -7,9 +7,9 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 import api from '../api/axiosConfig';
 
 /* Importaciones de Interfaces */
-import type { Product } from './interfaces/Product';
-import type { Client } from './interfaces/Client';
-import type { Sale } from './interfaces/Sale';
+import type { Product } from '../interfaces/Product';
+import type { Client } from '../interfaces/Client';
+import type { Sale } from '../interfaces/Sale';
 
 /* Constantes de Estilo */
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];

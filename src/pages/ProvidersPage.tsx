@@ -1,148 +1,146 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Table, Button, Spinner, Alert, Form, Row, Col, Modal } from 'react-bootstrap';
+import { Container, Table, Button, Spinner, Alert, Modal, Form, Row, Col } from 'react-bootstrap';
 import api from '../api/axiosConfig';
 
 /* Importaciones de Interfaces */
-import type { Product } from './interfaces/Product';
-import type { ProductApiResponse } from './interfaces/ProductApiResponse';
+import type { Provider } from '../interfaces/Provider';
+import type { ProviderApiResponse } from '../interfaces/ProviderApiResponse';
 
-const ProductTable: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+const ProvidersPage: React.FC = () => {
+  /* Estados para la Tabla de Proveedores */
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionMessageType, setActionMessageType] = useState<'success' | 'danger' | null>(null);
 
-  const [showProductForm, setShowProductForm] = useState<boolean>(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  /* Estados para el Formulario de Crear/Editar */
+  const [showProviderForm, setShowProviderForm] = useState<boolean>(false);
+  const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
 
+  /* Estados del Formulario */
   const [name, setName] = useState<string>('');
-  const [price, setPrice] = useState<string>('');
-  const [stock, setStock] = useState<string>('');
-  const [category, setCategory] = useState<string>('');
-  const [description, setDescription] = useState<string>('');
+  const [contactPerson, setContactPerson] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [formMessageType, setFormMessageType] = useState<'success' | 'danger' | null>(null);
   const [formLoading, setFormLoading] = useState<boolean>(false);
 
+  /* Estados para el Modal de Confirmación de Eliminación */
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
-  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [providerToDelete, setProviderToDelete] = useState<Provider | null>(null);
 
-  const fetchProducts = async () => {
+  /* Funciones de Carga de Datos */
+  const fetchProviders = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get<Product[]>('/products');
-      setProducts(response.data);
+      const response = await api.get<Provider[]>('/providers');
+      setProviders(response.data);
     } catch (err: any) {
-      console.error("Error al obtener los productos:", err);
+      console.error("Error al obtener los proveedores:", err);
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-        setError("Tu sesión ha expirado o no tienes permisos para ver productos.");
+        setError("Tu sesión ha expirado o no tienes permisos para ver proveedores.");
       } else {
-        setError("No se pudieron cargar los productos. Intenta de nuevo más tarde.");
+        setError("No se pudieron cargar los proveedores. Intenta de nuevo más tarde.");
       }
     } finally {
       setLoading(false);
     }
   };
 
+  /* Efectos de Carga Inicial y Formulario */
   useEffect(() => {
-    fetchProducts();
+    fetchProviders();
   }, []);
 
   useEffect(() => {
-    if (showProductForm) {
-      if (editingProduct) {
-        setName(editingProduct.name);
-        setPrice(editingProduct.price.toString());
-        setStock(editingProduct.stock.toString());
-        setCategory(editingProduct.category);
-        setDescription(editingProduct.description);
+    if (showProviderForm) {
+      if (editingProvider) {
+        setName(editingProvider.name);
+        setContactPerson(editingProvider.contactPerson);
+        setEmail(editingProvider.email);
+        setPhone(editingProvider.phone);
+        setAddress(editingProvider.address);
       } else {
         setName('');
-        setPrice('');
-        setStock('');
-        setCategory('');
-        setDescription('');
+        setContactPerson('');
+        setEmail('');
+        setPhone('');
+        setAddress('');
       }
       setFormMessage(null);
       setFormMessageType(null);
       setFormLoading(false);
     }
-  }, [editingProduct, showProductForm]);
+  }, [editingProvider, showProviderForm]);
 
+  /* Funciones de la Tabla de Proveedores */
   const handleShowCreateForm = () => {
-    setEditingProduct(null);
-    setShowProductForm(true);
+    setEditingProvider(null);
+    setShowProviderForm(true);
     setActionMessage(null);
     setActionMessageType(null);
   };
 
-  const handleShowEditForm = (product: Product) => {
-    setEditingProduct(product);
-    setShowProductForm(true);
+  const handleShowEditForm = (provider: Provider) => {
+    setEditingProvider(provider);
+    setShowProviderForm(true);
     setActionMessage(null);
     setActionMessageType(null);
   };
 
   const handleCancelForm = () => {
-    setShowProductForm(false);
-    setEditingProduct(null);
+    setShowProviderForm(false);
+    setEditingProvider(null);
   };
 
-  const handleProductSaved = () => {
-    fetchProducts();
-    setShowProductForm(false);
-    setEditingProduct(null);
+  const handleProviderSaved = () => {
+    fetchProviders();
+    setShowProviderForm(false);
+    setEditingProvider(null);
     setActionMessage('Operación realizada con éxito.');
     setActionMessageType('success');
   };
 
+  /* Lógica del Formulario de Proveedor */
   const handleSubmitForm = async (event: React.FormEvent) => {
     event.preventDefault();
     setFormMessage(null);
     setFormMessageType(null);
     setFormLoading(true);
 
-    if (!name || !price || !stock || !category || !description) {
+    if (!name || !contactPerson || !email || !phone || !address) {
       setFormMessage('Todos los campos son obligatorios.');
       setFormMessageType('danger');
       setFormLoading(false);
       return;
     }
 
-    const productPrice = parseFloat(price);
-    const productStock = parseInt(stock, 10);
-
-    if (isNaN(productPrice) || isNaN(productStock) || productPrice <= 0 || productStock < 0) {
-      setFormMessage('El precio debe ser un número positivo y el stock un número no negativo.');
-      setFormMessageType('danger');
-      setFormLoading(false);
-      return;
-    }
-
-    const productDataToSend = {
+    const providerDataToSend = {
       name,
-      price: productPrice,
-      stock: productStock,
-      category,
-      description,
+      contactPerson,
+      email,
+      phone,
+      address,
     };
 
     try {
       let response;
-      if (editingProduct) {
-        response = await api.put<ProductApiResponse>(`/products/${editingProduct.id}`, productDataToSend);
+      if (editingProvider) {
+        response = await api.put<ProviderApiResponse>(`/providers/${editingProvider.id}`, providerDataToSend);
       } else {
-        response = await api.post<ProductApiResponse>('/products', productDataToSend);
+        response = await api.post<ProviderApiResponse>('/providers', providerDataToSend);
       }
 
-      setFormMessage(response.data.message || `Producto ${editingProduct ? 'actualizado' : 'guardado'} exitosamente.`);
+      setFormMessage(response.data.message || `Proveedor ${editingProvider ? 'actualizado' : 'guardado'} exitosamente.`);
       setFormMessageType('success');
-      handleProductSaved();
+      handleProviderSaved();
 
     } catch (error: any) {
-      console.error('Error al guardar/actualizar el producto:', error);
+      console.error('Error al guardar/actualizar el proveedor:', error);
       if (error.response && error.response.data && error.response.data.message) {
         setFormMessage(error.response.data.message);
       } else {
@@ -154,8 +152,9 @@ const ProductTable: React.FC = () => {
     }
   };
 
-  const handleShowDeleteConfirm = (product: Product) => {
-    setProductToDelete(product);
+  /* Lógica del Modal de Confirmación de Eliminación */
+  const handleShowDeleteConfirm = (provider: Provider) => {
+    setProviderToDelete(provider);
     setShowDeleteConfirmModal(true);
     setActionMessage(null);
     setActionMessageType(null);
@@ -163,39 +162,40 @@ const ProductTable: React.FC = () => {
 
   const handleCloseDeleteConfirm = () => {
     setShowDeleteConfirmModal(false);
-    setProductToDelete(null);
+    setProviderToDelete(null);
   };
 
   const confirmDelete = async () => {
-    if (!productToDelete) return;
+    if (!providerToDelete) return;
 
-    const productId = productToDelete.id;
+    const providerId = providerToDelete.id;
     handleCloseDeleteConfirm();
 
     try {
-      await api.delete(`/products/${productId}`);
+      await api.delete(`/providers/${providerId}`);
 
-      setActionMessage('Producto eliminado exitosamente.');
+      setActionMessage('Proveedor eliminado exitosamente.');
       setActionMessageType('success');
-      setProducts(prevProducts => prevProducts.filter(p => p.id !== productId));
+      setProviders(prevProviders => prevProviders.filter(p => p.id !== providerId));
     } catch (err: any) {
-      console.error("Error al eliminar el producto:", err);
+      console.error("Error al eliminar el proveedor:", err);
       if (err.response && err.response.data && err.response.data.message) {
         setActionMessage(err.response.data.message);
       } else {
-        setActionMessage('No se pudo conectar con el servidor para eliminar el producto.');
+        setActionMessage('No se pudo conectar con el servidor para eliminar el proveedor.');
       }
       setActionMessageType('danger');
     }
   };
 
+  /* Renderizado Condicional de la Página */
   if (loading) {
     return (
       <Container className="my-5 text-center">
         <Spinner animation="border" role="status">
-          <span className="visually-hidden">Cargando productos...</span>
+          <span className="visually-hidden">Cargando proveedores...</span>
         </Spinner>
-        <p>Cargando productos...</p>
+        <p>Cargando proveedores...</p>
       </Container>
     );
   }
@@ -204,23 +204,24 @@ const ProductTable: React.FC = () => {
     return (
       <Container className="my-5">
         <Alert variant="danger">{error}</Alert>
-        <Button variant="secondary" onClick={fetchProducts}>Reintentar Carga</Button>
+        <Button variant="secondary" onClick={fetchProviders}>Reintentar Carga</Button>
       </Container>
     );
   }
 
-  if (showProductForm) {
+  /* Formulario de Proveedor */
+  if (showProviderForm) {
     return (
       <Container className="my-5 animate__animated animate__fadeInUp">
-        <h2 className="mb-4">{editingProduct ? 'Editar Producto' : 'Agregar Nuevo Producto'}</h2>
+        <h2 className="mb-4">{editingProvider ? 'Editar Proveedor' : 'Agregar Nuevo Proveedor'}</h2>
         {formMessage && <Alert variant={formMessageType || 'info'}>{formMessage}</Alert>}
 
         <Form onSubmit={handleSubmitForm}>
-          <Form.Group className="mb-3" controlId="formProductName">
-            <Form.Label>Nombre del Producto</Form.Label>
+          <Form.Group className="mb-3" controlId="formProviderName">
+            <Form.Label>Nombre del Proveedor</Form.Label>
             <Form.Control
               type="text"
-              placeholder="Ingrese el nombre del producto"
+              placeholder="Ingrese el nombre del proveedor"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -228,58 +229,52 @@ const ProductTable: React.FC = () => {
             />
           </Form.Group>
 
+          <Form.Group className="mb-3" controlId="formContactPerson">
+            <Form.Label>Persona de Contacto</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Ingrese el nombre de la persona de contacto"
+              value={contactPerson}
+              onChange={(e) => setContactPerson(e.target.value)}
+              required
+              disabled={formLoading}
+            />
+          </Form.Group>
+
           <Row className="mb-3">
-            <Form.Group as={Col} controlId="formProductPrice">
-              <Form.Label>Precio</Form.Label>
+            <Form.Group as={Col} controlId="formProviderEmail">
+              <Form.Label>Email</Form.Label>
               <Form.Control
-                type="number"
-                step="0.01"
-                placeholder="Ingrese el precio"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
+                type="email"
+                placeholder="Ingrese el email del proveedor"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={formLoading}
               />
             </Form.Group>
 
-            <Form.Group as={Col} controlId="formProductStock">
-              <Form.Label>Stock Actual</Form.Label>
+            <Form.Group as={Col} controlId="formProviderPhone">
+              <Form.Label>Teléfono</Form.Label>
               <Form.Control
-                type="number"
-                placeholder="Ingrese la cantidad en stock"
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
+                type="text"
+                placeholder="Ingrese el teléfono"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 required
                 disabled={formLoading}
               />
             </Form.Group>
           </Row>
 
-          <Form.Group className="mb-3" controlId="formProductCategory">
-            <Form.Label>Categoría</Form.Label>
-            <Form.Select
-              aria-label="Seleccione una categoría"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              required
-              disabled={formLoading}
-            >
-              <option value="">Seleccione una categoría</option>
-              <option value="Electrónica">Electrónica</option>
-              <option value="Ropa">Ropa</option>
-              <option value="Alimentos">Alimentos</option>
-              <option value="Hogar">Hogar</option>
-            </Form.Select>
-          </Form.Group>
-
-          <Form.Group className="mb-3" controlId="formProductDescription">
-            <Form.Label>Descripción</Form.Label>
+          <Form.Group className="mb-3" controlId="formProviderAddress">
+            <Form.Label>Dirección</Form.Label>
             <Form.Control
               as="textarea"
-              rows={3}
-              placeholder="Ingrese una descripción del producto"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              placeholder="Ingrese la dirección del proveedor"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
               required
               disabled={formLoading}
             />
@@ -298,12 +293,11 @@ const ProductTable: React.FC = () => {
                     size="sm"
                     role="status"
                     aria-hidden="true"
-                    className="me-1"
                   />
-                  {editingProduct ? 'Actualizando...' : 'Guardando...'}
+                  {editingProvider ? 'Actualizando...' : 'Guardando...'}
                 </>
               ) : (
-                editingProduct ? 'Actualizar Producto' : 'Guardar Producto'
+                editingProvider ? 'Actualizar Proveedor' : 'Guardar Proveedor'
               )}
             </Button>
           </div>
@@ -315,19 +309,19 @@ const ProductTable: React.FC = () => {
   return (
     <Container className="my-5 animate__animated animate__fadeInUp">
       <h2 className="mb-4 animate__animated animate__fadeInUp">
-        Gestión de Productos
+        Gestión de Proveedores
       </h2>
       {actionMessage && (
         <Alert variant={actionMessageType || "info"}>{actionMessage}</Alert>
       )}
       <div className="d-flex justify-content-end mb-3 animate__animated animate__fadeInUp">
         <Button variant="success" onClick={handleShowCreateForm}>
-          Agregar Nuevo Producto
+          Agregar Nuevo Proveedor
         </Button>
       </div>
-      {products.length === 0 ? (
+      {providers.length === 0 ? (
         <Alert variant="info" className="text-center">
-          No hay productos registrados. ¡Agrega uno nuevo!
+          No hay proveedores registrados. ¡Agrega uno nuevo!
         </Alert>
       ) : (
         <Table striped bordered hover responsive>
@@ -335,35 +329,35 @@ const ProductTable: React.FC = () => {
             <tr>
               <th>ID</th>
               <th>Nombre</th>
-              <th>Precio</th>
-              <th>Stock</th>
-              <th>Categoría</th>
-              <th>Descripción</th>
+              <th>Contacto</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Dirección</th>
               <th className="text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
-              <tr key={product.id}>
-                <td>{product.id}</td>
-                <td>{product.name}</td>
-                <td>${product.price ? product.price.toFixed(2) : "N/A"}</td>
-                <td>{product.stock}</td>
-                <td>{product.category || "N/A"}</td>
-                <td>{product.description || "N/A"}</td>
+            {providers.map((provider) => (
+              <tr key={provider.id}>
+                <td>{provider.id}</td>
+                <td>{provider.name}</td>
+                <td>{provider.contactPerson}</td>
+                <td>{provider.email}</td>
+                <td>{provider.phone}</td>
+                <td>{provider.address}</td>
                 <td className="text-center">
                   <Button
                     variant="info"
                     size="sm"
                     className="me-2"
-                    onClick={() => handleShowEditForm(product)}
+                    onClick={() => handleShowEditForm(provider)}
                   >
                     Editar
                   </Button>
                   <Button
                     variant="danger"
                     size="sm"
-                    onClick={() => handleShowDeleteConfirm(product)}
+                    onClick={() => handleShowDeleteConfirm(provider)}
                   >
                     Eliminar
                   </Button>
@@ -383,9 +377,9 @@ const ProductTable: React.FC = () => {
           <Modal.Title>Confirmar Eliminación</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          ¿Estás seguro de que quieres eliminar el producto **
-          {productToDelete?.name}** (ID: {productToDelete?.id})? Esta acción no
-          se puede deshacer.
+          ¿Estás seguro de que quieres eliminar al proveedor **
+          {providerToDelete?.name}** (ID: {providerToDelete?.id})? Esta acción
+          no se puede deshacer.
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseDeleteConfirm}>
@@ -400,4 +394,4 @@ const ProductTable: React.FC = () => {
   );
 };
 
-export default ProductTable;
+export default ProvidersPage;

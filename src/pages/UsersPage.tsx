@@ -3,8 +3,8 @@ import { Container, Table, Button, Spinner, Alert, Modal, Form } from 'react-boo
 import api from '../api/axiosConfig';
 
 /* Importaciones de Interfaces */
-import type { User } from './interfaces/User';
-import type { UserApiResponse } from './interfaces/UserApiResponse';
+import type { User } from '../interfaces/User';
+import type { UserApiResponse } from '../interfaces/UserApiResponse';
 
 const UsersPage: React.FC = () => {
   /* Estados para la Tabla de Usuarios */
