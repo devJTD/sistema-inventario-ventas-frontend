@@ -22,7 +22,7 @@ const NavbarComponent: React.FC<NavbarComponentProps> = ({ openNewWindow, userRo
   return (
     <Navbar bg="dark" variant="dark" expand="lg" className="fixed-top" style={{ height: '56px', zIndex: 10000 }}>
       <Container fluid>
-        <Navbar.Brand href="#home">Sistema de Inventario</Navbar.Brand>
+        <Navbar.Brand href="#home">La Esquina</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">

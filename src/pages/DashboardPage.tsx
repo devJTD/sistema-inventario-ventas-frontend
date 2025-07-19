@@ -3,16 +3,26 @@ import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstr
 
 /* Importaciones de Recharts */
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'; // Importar componentes de BarChart
 
 import api from '../api/axiosConfig';
 
 /* Importaciones de Interfaces */
-import type { Product } from '../interfaces/Product';
-import type { Client } from '../interfaces/Client';
-import type { Sale } from '../interfaces/Sale';
+import type { Product } from '../interfaces/Product'; // Ruta corregida
+import type { Client } from '../interfaces/Client'; // Ruta corregida
+import type { Sale } from '../interfaces/Sale'; // Ruta corregida
+import type { Category } from '../interfaces/Category'; // Ruta corregida
 
 /* Constantes de Estilo */
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+const BAR_COLORS = ['#3b82f6', '#16a34a', '#ca8a04', '#ea580c', '#9333ea']; // Colores para el gráfico de barras
+
+/* Interfaz para el Producto Más Vendido */
+interface TopSoldProduct {
+  productId: string;
+  name: string;
+  totalQuantitySold: number;
+}
 
 const DashboardPage: React.FC = () => {
   /* Estados de Datos del Dashboard */
@@ -20,6 +30,8 @@ const DashboardPage: React.FC = () => {
   const [totalClients, setTotalClients] = useState<number | null>(null);
   const [totalSalesAmount, setTotalSalesAmount] = useState<number | null>(null);
   const [productsByCategory, setProductsByCategory] = useState<{ name: string; value: number }[]>([]);
+  const [, setAvailableCategories] = useState<Category[]>([]);
+  const [topSoldProducts, setTopSoldProducts] = useState<TopSoldProduct[]>([]);
 
   /* Estados de UI y Errores */
   const [loading, setLoading] = useState<boolean>(true);
@@ -29,18 +41,24 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productsRes, clientsRes, salesRes] = await Promise.all([
+        const [productsRes, clientsRes, salesRes, categoriesRes, topProductsRes] = await Promise.all([
           api.get<Product[]>('/products'),
           api.get<Client[]>('/clients'),
-          api.get<Sale[]>('/sales')
+          api.get<Sale[]>('/sales'),
+          api.get<Category[]>('/categories'),
+          api.get<TopSoldProduct[]>('/sales/top-products', { params: { period: 'last30days' } }) // Obtener productos más vendidos
         ]);
 
         const productsData = productsRes.data;
         const clientsData = clientsRes.data;
         const salesData = salesRes.data;
+        const categoriesData = categoriesRes.data;
+        const topSoldProductsData = topProductsRes.data;
 
         setTotalProducts(productsData.length);
         setTotalClients(clientsData.length);
+        setAvailableCategories(categoriesData);
+        setTopSoldProducts(topSoldProductsData); // Establecer productos más vendidos
 
         const salesSum = salesData.reduce((sum, sale) => sum + sale.total, 0);
         setTotalSalesAmount(salesSum);
@@ -48,13 +66,13 @@ const DashboardPage: React.FC = () => {
         /* Lógica para Contar Productos por Categoría */
         const categoryCounts: { [key: string]: number } = {};
         productsData.forEach(product => {
-          const category = product.category || 'Sin Categoría';
-          categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+          const categoryName = categoriesData.find(cat => cat.id === product.categoryId)?.name || 'Sin Categoría';
+          categoryCounts[categoryName] = (categoryCounts[categoryName] || 0) + 1;
         });
 
-        const chartData = Object.keys(categoryCounts).map(category => ({
-          name: category,
-          value: categoryCounts[category]
+        const chartData = Object.keys(categoryCounts).map(categoryName => ({
+          name: categoryName,
+          value: categoryCounts[categoryName]
         }));
         setProductsByCategory(chartData);
 
@@ -147,8 +165,8 @@ const DashboardPage: React.FC = () => {
       </Row>
 
       <Row className="mt-5 justify-content-center animate__animated animate__fadeInUp">
-        <Col md={8}>
-          <Card className="p-3 shadow-sm animate__animated animate__fadeInUp">
+        <Col md={6} className="mb-4">
+          <Card className="p-3 shadow-sm animate__animated animate__fadeInUp h-100">
             <Card.Body>
               <Card.Title className="text-center mb-4 animate__animated animate__fadeInUp">
                 Distribución de Productos por Categoría
@@ -183,6 +201,50 @@ const DashboardPage: React.FC = () => {
               ) : (
                 <Alert variant="info" className="text-center ">
                   No hay datos de productos para mostrar en el gráfico.
+                </Alert>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+
+        {/* Nueva Sección: Productos Más Vendidos (Gráfico de Barras) */}
+        <Col md={6} className="mb-4">
+          <Card className="p-3 shadow-sm animate__animated animate__fadeInUp h-100">
+            <Card.Body>
+              <Card.Title className="text-center mb-4 animate__animated animate__fadeInUp">
+                Top 5 Productos Más Vendidos (Últimos 30 Días)
+              </Card.Title>
+              {topSoldProducts.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart
+                    data={topSoldProducts}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="name"
+                      angle={-30} // Inclinar etiquetas para nombres largos
+                      textAnchor="end"
+                      height={60} // Aumentar altura para etiquetas inclinadas
+                      interval={0} // Mostrar todas las etiquetas
+                      tickFormatter={(value) => {
+                        // Cortar y añadir elipsis si el nombre es muy largo
+                        return value.length > 15 ? value.substring(0, 12) + '...' : value;
+                      }}
+                    />
+                    <YAxis label={{ value: 'Unidades Vendidas', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                    <Legend />
+                    <Bar dataKey="totalQuantitySold" name="Unidades Vendidas">
+                      {topSoldProducts.map((_entry, index) => (
+                        <Cell key={`bar-cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <Alert variant="info" className="text-center">
+                  No hay datos de ventas recientes para los productos más vendidos.
                 </Alert>
               )}
             </Card.Body>
