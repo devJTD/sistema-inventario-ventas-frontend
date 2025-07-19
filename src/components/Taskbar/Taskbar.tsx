@@ -2,7 +2,7 @@ import React from 'react';
 import { Navbar, Nav, Button } from 'react-bootstrap';
 
 /* Importación de Interfaces */
-import type { TaskbarProps } from './interfaces/TaskbarProps';
+import type { TaskbarProps } from '../../interfaces/TaskbarProps';
 
 const Taskbar: React.FC<TaskbarProps> = ({ openWindows, onWindowClick }) => {
   /* Filtra las ventanas activas (abiertas o minimizadas). */

@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 /* Importación de Tipos */
 import type { UserRole } from '../../types/UserRole';
-import type { NavbarComponentProps } from './interfaces/NavbarComponentProps';
+import type { NavbarComponentProps } from '../../interfaces/NavbarComponentProps';
 
 const NavbarComponent: React.FC<NavbarComponentProps> = ({ openNewWindow, userRole }) => {
   /* Obtención de Contexto de Autenticación */

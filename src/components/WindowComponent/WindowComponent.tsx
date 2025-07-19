@@ -4,7 +4,7 @@ import Draggable from "react-draggable";
 import { ResizableBox, type ResizeCallbackData, type ResizeHandle } from "react-resizable";
 
 /* Importación de Interfaces */
-import type { WindowComponentProps } from './interfaces/WindowComponentProps';
+import type { WindowComponentProps } from '../../interfaces/WindowComponentProps';
 
 const WindowComponent: React.FC<WindowComponentProps> = ({
   id,

@@ -21,8 +21,8 @@ import CategoriesPage from './pages/CategoriesPage';
 // Importaciones de contextos y tipos
 import { useAuth } from './contexts/AuthContext';
 import type { UserRole } from './types/UserRole'; 
-import type { WindowInfo } from './components/WindowComponent/interfaces/WindowInfo'; 
-import type { TaskbarWindow } from './components/Taskbar/interfaces/TaskbarWindow'; 
+import type { WindowInfo } from './interfaces/WindowInfo'; 
+import type { TaskbarWindow } from './interfaces/TaskbarWindow'; 
 
 // Importa animate.css para animaciones
 import "animate.css";
